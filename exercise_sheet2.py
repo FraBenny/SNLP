@@ -222,13 +222,9 @@ def estimate_emission_probabilities(corpus):
     #tags = set(tags)
     #print(tokens)
     #print(tags)
-    #emission_tags_list = []
     #I create a list with every tag and token, but is not correct, if a word didn't have a token don't need to have it know
     #otherwise the probability is the same for every word and tag, so I've to take the initial list of tuple and calculate the number
     # of occurences
-    '''for x in tags:
-        for y in tokens:
-            emission_tags_list.append((x,y))'''
     #Have to be done directly on the corpus
     for f in corpus:
         for i in f:
