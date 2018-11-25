@@ -29,7 +29,41 @@ def import_corpus(path_to_file):
         #print(sentence)
     f.close()        
     return sentences
-    
+
+def divide_in_training_and_test(corpus):
+    test_corpus = corpus.pop()
+    training_corpus = corpus
+    return (training_corpus,test_corpus)
+
+def preprocess(corpus):
+    prova = {}
+    lista = []
+    words = {}
+    #Every f is a sentence, a list of tuple
+    for f in corpus:
+        #Every i is a tuple, I take one tuple a time
+        for i in f:
+            #I get every character lower
+            #I create a list with all tokens
+            lista.append(i[0].lower())
+            #I create a dictionary with token and tag
+            prova[i[0].lower()] = i[1]
+    #print(lista)
+    #print(prova.keys())
+    print(lista.__len__())
+    #I evaluate for every token the number of occurences
+    for i in lista:
+        if i in words.keys():
+            words[i] += 1
+        else:
+            words[i] = 1
+    x = list(words.keys())
+    #I put unknown for every token that occurence only one time
+    for i in x:
+        words['unknown'] = words.pop(i) if words.get(i) == 1 else False
+    #print(words)
+    return words
+#Se nel preprocess lo trasformo in dictionary, lo posso poi usare così per tutto il resto
 
 
 
@@ -42,10 +76,7 @@ Parameters:	state: string
 Returns: float; initial probability of the given state
 '''
 def initial_state_probabilities(state, internal_representation):
-    '''for s in state:
-
-    pass
-'''
+    return internal_representation.get(state)
     
     
     
@@ -58,7 +89,7 @@ Parameters:	from_state: string;
 Returns: float; probability of transition from_state -> to_state
 '''
 def transition_probabilities(from_state, to_state, internal_representation):
-    pass
+    return internal_representation.get((from_state,to_state))
     
     
     
@@ -72,7 +103,7 @@ Parameters:	state: string;
 Returns: float; emission probability of the symbol emission_symbol if the current state is state
 '''
 def emission_probabilities(state, emission_symbol, internal_representation):
-    pass
+    return internal_representation.get((state,emission_symbol))
     
     
     
@@ -85,10 +116,7 @@ Returns: data structure containing the parameters of the probability distributio
 '''
 def estimate_initial_state_probabilities(corpus):
     prova = {}
-    state = []
     lista = []
-    #list of tokens
-    k = []
     initial_tags = {}
     #Take only first word of a sentence
     for f in corpus:
@@ -157,6 +185,7 @@ def estimate_transition_probabilities(corpus):
     transition_tags = {}
     for f in corpus:
         #For every sentence I take the token and the tag of one and his next, two tuple a time
+        #Viene considerata l'ultima? In teoria no perché altrimenti darebbe errore
         for i in range(len(f)-1):
             (a, b) = f[i]
             (c, d) = f[i+1]
@@ -166,14 +195,16 @@ def estimate_transition_probabilities(corpus):
             else:
                 transition_tags[(b, d)] = 1
     #I take the sum of all occurences
-    tot = sum(transition_tags.values())
+    #Devo prendere solo le occorrenze del tag successivo
+    #E quello successivo se è alla fine della frase
+    tot = sum(transition_tags.value())
     #I iterate on items of the dictionary
     for k,v in transition_tags.items():
         #I calculate the probability of every tag
         prob = v/tot
         #I update the dictionary with the probability
         transition_tags[k] = prob
-    #print(transition_tags)
+    print(transition_tags)
     #print(sum(transition_tags.values()))
     return transition_tags
     
@@ -237,8 +268,9 @@ def estimate_emission_probabilities(corpus):
                 emission_tags[(a.lower(), b)] = 1
     #print(emission_tags)
     #Sommo tutte le occorrenze
-    tot = sum(emission_tags.values())
-    #prob_tag_value = []
+    #Anche qui si considera solo il tag della parola
+    freq_tag = []
+    #freq_tag.append()
     #I iterate on items of the dictionary
     for k,v in emission_tags.items():
         #I calculate the probability of every tag
@@ -246,9 +278,11 @@ def estimate_emission_probabilities(corpus):
         #prob_tag_value.append(v/tot)
         #print(dict_for_tags.get(k[1]))
         #Calcolo la probabilità della tupla token e tag
-        prob_token_tag = v/tot
+        #tot = sum(emission_tags.get((x,k[1])))
+        #print(emission_tags.get())
+        prob = v/tot
         #Vado a dividere la probabilità calcolata prima per la probabilità del tag
-        prob = prob_token_tag/dict_for_tags.get(k[1])
+        #prob = prob_token_tag/dict_for_tags.get(k[1])
         #I update the dictionary with the probability
         emission_tags[k] = prob
     print(emission_tags)
@@ -275,9 +309,15 @@ def most_likely_state_sequence(observed_smbols, initial_state_probabilities_para
     pass
 
 
-
+#For transitional and emission is better to create a nested dictionary
 if __name__ == '__main__':
-    x = import_corpus("corpus_ner.txt")
+    corpus = import_corpus("corpus_ner.txt")
+    corpus.pop()
+    (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
+    corpus_training = preprocess(corpus_training)
+    #Dividere il corpus in training e test togliendo una stringa dal corpus
+    #Fare il preprocessing mettendo gli unknown
+    #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
     #estimate_initial_state_probabilities(x)
     #estimate_transition_probabilities(x)
     #Controllare i commenti della emission
