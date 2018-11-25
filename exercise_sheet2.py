@@ -36,10 +36,8 @@ def divide_in_training_and_test(corpus):
     return (training_corpus,test_corpus)
 
 def preprocess(corpus):
-    prova = {}
-    lista = []
     unknown_tokens = []
-    new_corpus = {}
+    corpus_dict = {}
     #Every f is a sentence, a list of tuple
     #I've to take the corpus and trasform it in a list
     for f in corpus:
@@ -47,11 +45,11 @@ def preprocess(corpus):
         for i in f:
             ##I create a dictionary with tags and number of occurences
             (a, b) = i
-            if (a,b) in new_corpus.keys():
-                new_corpus[(a,b)] += 1
+            if (a,b) in corpus_dict.keys():
+                corpus_dict[(a,b)] += 1
             else:
-                new_corpus[(a,b)] = 1
-    for k,v in new_corpus.keys():
+                corpus_dict[(a,b)] = 1
+    for k,v in corpus_dict.keys():
         if v == 1:
             unknown_tokens.append(k[0])
     for f in corpus:
@@ -60,32 +58,7 @@ def preprocess(corpus):
             for x in unknown_tokens:
                 if i[0] == x:
                     i[0] = 'unknown'
-            '''
-        #Every i is a tuple, I take one tuple a time
-        for i in f:
-            #I get every character lower
-            #I create a list with all tokens
-            lista.append(i[0].lower())
-            #I create a dictionary with token and tag
-            prova[i[0].lower()] = i[1]
-    print(lista)
-    #print(prova.keys())
-    #print(lista.__len__())
-    #I evaluate for every token the number of occurences
-    for i in lista:
-        if i in new_corpus.keys():
-            new_corpus[i] += 1
-        else:
-            new_corpus[i] = 1
-    x = list(new_corpus.keys())
-    #I put unknown for every token that occurence only one time
-    for i in x:
-        new_corpus['unknown'] = new_corpus.pop(i) if new_corpus.get(i) == 1 else False
-    print(new_corpus)'''
-    print(corpus)
-
-    return new_corpus
-#Se nel preprocess lo trasformo in dictionary, lo posso poi usare così per tutto il resto
+    return corpus
 
 
 
@@ -212,10 +185,11 @@ def estimate_transition_probabilities(corpus):
             (a, b) = f[i]
             (c, d) = f[i+1]
             #I create a dictionary with tag and his following and number of occurences
-            if (b, d) in transition_tags.keys():
-                transition_tags[(b, d)] += 1
+            if b in transition_tags.keys():
+                if d (transition_tags[b]).keys():
+                    transition_tags[b][d] += 1
             else:
-                transition_tags[(b, d)] = 1
+                transition_tags[b][d] = 1
     #I take the sum of all occurences
     #Devo prendere solo le occorrenze del tag successivo
     #E quello successivo se è alla fine della frase
@@ -288,13 +262,24 @@ def estimate_emission_probabilities(corpus):
                 emission_tags[(a.lower(), b)] += 1
             else:
                 emission_tags[(a.lower(), b)] = 1
+        for i in f:
+            (a, b) = i
+            #I create a dictionary with tag and his following and number of occurences
+            if b in emission_tags.keys():
+                if a.lower (emission_tags[b]).keys():
+                    emission_tags[b][a.lower] += 1
+                else:
+                    emission_tags
+            else:
+                emission_tags[b][a.lower] = 1
+    print(emission_tags)
     #print(emission_tags)
     #Sommo tutte le occorrenze
     #Anche qui si considera solo il tag della parola
     freq_tag = []
     #freq_tag.append()
     #I iterate on items of the dictionary
-    for k,v in emission_tags.items():
+    '''for k,v in emission_tags.items():
         #I calculate the probability of every tag
         #Mi servono dei dizionari non delle stringhe altrimenti come faccio a trovare il tag in comune
         #prob_tag_value.append(v/tot)
@@ -310,7 +295,7 @@ def estimate_emission_probabilities(corpus):
     #print(emission_tags)
     #print(sum(emission_tags.values()))
     #La print della sum esce maggiore di 1, perciò non va bene
-    #print(emission_tags_list)
+    #print(emission_tags_list)'''
     return emission_tags
 
     
@@ -342,7 +327,7 @@ if __name__ == '__main__':
     #estimate_initial_state_probabilities(corpus)
     #estimate_transition_probabilities(x)
     #Controllare i commenti della emission
-    #estimate_emission_probabilities(x)
+    estimate_emission_probabilities(corpus_training)
 
 
 
