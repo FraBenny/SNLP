@@ -38,9 +38,29 @@ def divide_in_training_and_test(corpus):
 def preprocess(corpus):
     prova = {}
     lista = []
-    words = {}
+    unknown_tokens = []
+    new_corpus = {}
     #Every f is a sentence, a list of tuple
+    #I've to take the corpus and trasform it in a list
     for f in corpus:
+        ##For every sentence I take only the first token and his tag
+        for i in f:
+            ##I create a dictionary with tags and number of occurences
+            (a, b) = i
+            if (a,b) in new_corpus.keys():
+                new_corpus[(a,b)] += 1
+            else:
+                new_corpus[(a,b)] = 1
+    for k,v in new_corpus.keys():
+        if v == 1:
+            unknown_tokens.append(k[0])
+    for f in corpus:
+        ##For every sentence I take only the first token and his tag
+        for i in f:
+            for x in unknown_tokens:
+                if i[0] == x:
+                    i[0] = 'unknown'
+            '''
         #Every i is a tuple, I take one tuple a time
         for i in f:
             #I get every character lower
@@ -48,21 +68,23 @@ def preprocess(corpus):
             lista.append(i[0].lower())
             #I create a dictionary with token and tag
             prova[i[0].lower()] = i[1]
-    #print(lista)
+    print(lista)
     #print(prova.keys())
-    print(lista.__len__())
+    #print(lista.__len__())
     #I evaluate for every token the number of occurences
     for i in lista:
-        if i in words.keys():
-            words[i] += 1
+        if i in new_corpus.keys():
+            new_corpus[i] += 1
         else:
-            words[i] = 1
-    x = list(words.keys())
+            new_corpus[i] = 1
+    x = list(new_corpus.keys())
     #I put unknown for every token that occurence only one time
     for i in x:
-        words['unknown'] = words.pop(i) if words.get(i) == 1 else False
-    #print(words)
-    return words
+        new_corpus['unknown'] = new_corpus.pop(i) if new_corpus.get(i) == 1 else False
+    print(new_corpus)'''
+    print(corpus)
+
+    return new_corpus
 #Se nel preprocess lo trasformo in dictionary, lo posso poi usare così per tutto il resto
 
 
@@ -285,8 +307,8 @@ def estimate_emission_probabilities(corpus):
         #prob = prob_token_tag/dict_for_tags.get(k[1])
         #I update the dictionary with the probability
         emission_tags[k] = prob
-    print(emission_tags)
-    print(sum(emission_tags.values()))
+    #print(emission_tags)
+    #print(sum(emission_tags.values()))
     #La print della sum esce maggiore di 1, perciò non va bene
     #print(emission_tags_list)
     return emission_tags
@@ -312,16 +334,15 @@ def most_likely_state_sequence(observed_smbols, initial_state_probabilities_para
 #For transitional and emission is better to create a nested dictionary
 if __name__ == '__main__':
     corpus = import_corpus("corpus_ner.txt")
-    corpus.pop()
+    #corpus.pop()
     (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
     corpus_training = preprocess(corpus_training)
-    #Dividere il corpus in training e test togliendo una stringa dal corpus
-    #Fare il preprocessing mettendo gli unknown
+    #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
-    #estimate_initial_state_probabilities(x)
+    #estimate_initial_state_probabilities(corpus)
     #estimate_transition_probabilities(x)
     #Controllare i commenti della emission
-    estimate_emission_probabilities(x)
+    #estimate_emission_probabilities(x)
 
 
 
