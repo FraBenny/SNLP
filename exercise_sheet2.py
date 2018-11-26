@@ -200,7 +200,16 @@ def estimate_transition_probabilities(corpus):
     for k,v in transition_tags.items():
         tot = sum(transition_tags[k].values())
         sum_for_tag[k] = tot
-    print(sum_for_tag)
+    #print(sum_for_tag)
+    for k,v in transition_tags.items():
+        #I calculate tot one time for every k and remain the same for every tag that follow it
+        tot = sum_for_tag.get(k)
+        for k2,v2 in transition_tags[k].items():
+            #I calculate the probability that the token follow is follow by the other
+            prob = v2/tot
+            #I update the dictionary with the probability
+            transition_tags[k][k2] = prob
+        print(sum(transition_tags[k].values()))
     #I iterate on items of the dictionary
     '''
     if v in transition_tags[]
@@ -255,10 +264,6 @@ def estimate_emission_probabilities(corpus):
         #I update the dictionary with the probability
         dict_for_tags[k] = v/tot
     '''
-    #print(dict_for_tags)
-    #print(sum(dict_for_tags.values()))
-    #tokens = set(tokens)
-    #tags = set(tags)
     #print(tokens)
     #print(tags)
     #I create a list with every tag and token, but is not correct, if a word didn't have a token don't need to have it know
@@ -277,39 +282,24 @@ def estimate_emission_probabilities(corpus):
                 else:
                     emission_tags[b][a.lower()] += 1
     print(emission_tags)
-    '''prob_tag_value = {}
-    for k,v in emission_tags.items():
-        tot = sum(emission_tags[k].values())
-        prob_tag_value[k] = tot
-    print(prob_tag_value)'''
-    #print(emission_tags)
-    #Sommo tutte le occorrenze
     #Anche qui si considera solo il tag della parola
-    freq_tag = []
-    #freq_tag.append()
     #I iterate on items of the dictionary
     sum_for_tag = {}
     for k,v in emission_tags.items():
         tot = sum(emission_tags[k].values())
         sum_for_tag[k] = tot
     print(sum_for_tag)
-    '''for k,v in emission_tags.items():
-        #I calculate the probability of every tag
-        #Mi servono dei dizionari non delle stringhe altrimenti come faccio a trovare il tag in comune
-        #prob_tag_value.append(v/tot)
-        #print(dict_for_tags.get(k[1]))
-        #Calcolo la probabilità della tupla token e tag
-        #tot = sum(emission_tags.get((x,k[1])))
-        #print(emission_tags.get())
-        prob = v/tot
-        #Vado a dividere la probabilità calcolata prima per la probabilità del tag
-        #prob = prob_token_tag/dict_for_tags.get(k[1])
-        #I update the dictionary with the probability
-        emission_tags[k] = prob
+    for k,v in emission_tags.items():
+        #I calculate tot one time for every k and remain the same for every token link to that
+        tot = sum_for_tag.get(k)
+        for k2,v2 in emission_tags[k].items():
+            #Calcolo la probabilità token e tag
+            prob = v2/tot
+            #I update the dictionary with the probability
+            emission_tags[k][k2] = prob
+        #print(sum(emission_tags[k].values()))
     #print(emission_tags)
-    #print(sum(emission_tags.values()))
-    #La print della sum esce maggiore di 1, perciò non va bene
-    #print(emission_tags_list)'''
+    #print(sum(emission_tags.values()))'''
     return emission_tags
 
     
@@ -339,9 +329,9 @@ if __name__ == '__main__':
     #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
     #estimate_initial_state_probabilities(corpus)
-    #estimate_transition_probabilities(corpus_training)
+    estimate_transition_probabilities(corpus_training)
     #Controllare i commenti della emission
-    estimate_emission_probabilities(corpus_training)
+    #estimate_emission_probabilities(corpus_training)
 
 
 
