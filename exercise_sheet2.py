@@ -254,25 +254,31 @@ def estimate_emission_probabilities(corpus):
     # of occurences
     #Have to be done directly on the corpus
     for f in corpus:
-        for i in f:
+        '''for i in f:
             #For every tuple of token and tag, I calculate the number of occurences
             (a, b) = i
             #I create a dictionary with tag and token and his following and number of occurences
             if (a, b) in emission_tags.keys():
                 emission_tags[(a.lower(), b)] += 1
             else:
-                emission_tags[(a.lower(), b)] = 1
+                emission_tags[(a.lower(), b)] = 1'''
         for i in f:
             (a, b) = i
             #I create a dictionary with tag and his following and number of occurences
+            print(i)
             if b in emission_tags.keys():
                 if a.lower (emission_tags[b]).keys():
                     emission_tags[b][a.lower] += 1
                 else:
                     emission_tags
             else:
+                print(b)
                 emission_tags[b][a.lower] = 1
-    print(emission_tags)
+    prob_tag_value = {}
+    for k,v in emission_tags.items():
+        tot = sum(emission_tags[k].values())
+        prob_tag_value[k] = tot
+    print(prob_tag_value)
     #print(emission_tags)
     #Sommo tutte le occorrenze
     #Anche qui si considera solo il tag della parola
