@@ -84,7 +84,7 @@ Parameters:	from_state: string;
 Returns: float; probability of transition from_state -> to_state
 '''
 def transition_probabilities(from_state, to_state, internal_representation):
-    return internal_representation.get((from_state,to_state))
+    return internal_representation[from_state].get(to_state)
     
     
     
@@ -98,7 +98,7 @@ Parameters:	state: string;
 Returns: float; emission probability of the symbol emission_symbol if the current state is state
 '''
 def emission_probabilities(state, emission_symbol, internal_representation):
-    return internal_representation.get((state,emission_symbol))
+    return internal_representation[state].get(emission_symbol)
     
     
     
@@ -148,7 +148,7 @@ def estimate_initial_state_probabilities(corpus):
     #I create a set with all states
     state = set(prova.values())
     #print(prova.keys())
-    print(lista.__len__())
+    #print(lista.__len__())
     words = {}
     #I evaluate for every token the number of occurences
     for i in lista:
@@ -192,7 +192,6 @@ def estimate_transition_probabilities(corpus):
                     transition_tags[b][d] = 1
                 else:
                     transition_tags[b][d] += 1
-    #print(transition_tags)
     #I take the sum of all occurences
     #Devo prendere solo le occorrenze del tag successivo
     #E quello successivo se è alla fine della frase
@@ -200,8 +199,6 @@ def estimate_transition_probabilities(corpus):
     for k,v in transition_tags.items():
         tot = sum(transition_tags[k].values())
         sum_for_tag[k] = tot
-    #print(sum_for_tag)
-    valore_finale = 0
     for k,v in transition_tags.items():
         #I calculate tot one time for every k and remain the same for every tag that follow it
         tot = sum_for_tag.get(k)
@@ -210,9 +207,6 @@ def estimate_transition_probabilities(corpus):
             prob = v2/tot
             #I update the dictionary with the probability
             transition_tags[k][k2] = prob
-        valore_finale = valore_finale + sum(transition_tags[k].values())
-    print(valore_finale)
-    #print(sum(transition_tags.values()))
     return transition_tags
     
     
@@ -226,38 +220,7 @@ Returns: data structure containing the parameters of the matrix of emission prob
 '''
 def estimate_emission_probabilities(corpus):
     emission_tags = {}
-    tokens = []
-    tags = []
     #Every f is a sentence, a list of tuple
-    '''
-    for f in corpus:
-        #Every i is a tuple, I take one tuple a time
-        for i in f:
-            #I get every character lower
-            #I create a list with all tokens
-            tokens.append(i[0].lower())
-            #I create a list with all tags
-            tags.append(i[1])
-    #I create the dictionary for the tags
-    dict_for_tags = {}
-    #I count the occurences of every tags
-    for x in tags:
-        if x in dict_for_tags.keys():
-            dict_for_tags[x] += 1
-        else:
-            dict_for_tags[x] = 1
-    #print(dict_for_tags)
-    prob_tags = []
-    tot = sum(dict_for_tags.values())
-    #For every tag I calculate the probability'''
-    '''for k,v in dict_for_tags.items():
-        #I calculate the probability of every tag
-        prob_tags.append(v/tot)
-        #I update the dictionary with the probability
-        dict_for_tags[k] = v/tot
-    '''
-    #print(tokens)
-    #print(tags)
     #I create a list with every tag and token, but is not correct, if a word didn't have a token don't need to have it know
     #otherwise the probability is the same for every word and tag, so I've to take the initial list of tuple and calculate the number
     # of occurences
@@ -273,14 +236,12 @@ def estimate_emission_probabilities(corpus):
                     emission_tags[b][a.lower()] = 1
                 else:
                     emission_tags[b][a.lower()] += 1
-    print(emission_tags)
     #Anche qui si considera solo il tag della parola
     #I iterate on items of the dictionary
     sum_for_tag = {}
     for k,v in emission_tags.items():
         tot = sum(emission_tags[k].values())
         sum_for_tag[k] = tot
-    print(sum_for_tag)
     for k,v in emission_tags.items():
         #I calculate tot one time for every k and remain the same for every token link to that
         tot = sum_for_tag.get(k)
@@ -289,9 +250,6 @@ def estimate_emission_probabilities(corpus):
             prob = v2/tot
             #I update the dictionary with the probability
             emission_tags[k][k2] = prob
-        #print(sum(emission_tags[k].values()))
-    #print(emission_tags)
-    #print(sum(emission_tags.values()))'''
     return emission_tags
 
     
@@ -309,6 +267,7 @@ Parameters: observed_smbols: list of strings; the sequence of observed symbols
 Returns: list of strings; the most likely state sequence
 '''
 def most_likely_state_sequence(observed_smbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
+
     pass
 
 
@@ -320,11 +279,12 @@ if __name__ == '__main__':
     corpus_training = preprocess(corpus_training)
     #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
-    #estimate_initial_state_probabilities(corpus)
-    estimate_transition_probabilities(corpus_training)
-    #Controllare i commenti della emission
-    #estimate_emission_probabilities(corpus_training)
-
+    in_prob = estimate_initial_state_probabilities(corpus)
+    print(initial_state_probabilities('O',in_prob))
+    tr_prob = estimate_transition_probabilities(corpus_training)
+    print(transition_probabilities('O','O',tr_prob))
+    em_prob = estimate_emission_probabilities(corpus_training)
+    print(emission_probabilities('O','the',em_prob))
 
 
 
