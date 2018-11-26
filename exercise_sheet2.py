@@ -185,22 +185,32 @@ def estimate_transition_probabilities(corpus):
             (a, b) = f[i]
             (c, d) = f[i+1]
             #I create a dictionary with tag and his following and number of occurences
-            if b in transition_tags.keys():
-                if d (transition_tags[b]).keys():
-                    transition_tags[b][d] += 1
+            if b not in transition_tags.keys():
+                transition_tags[b] = {d : 1}
             else:
-                transition_tags[b][d] = 1
+                if d not in transition_tags[b].keys():
+                    transition_tags[b][d] = 1
+                else:
+                    transition_tags[b][d] += 1
+    #print(transition_tags)
     #I take the sum of all occurences
     #Devo prendere solo le occorrenze del tag successivo
     #E quello successivo se è alla fine della frase
-    tot = sum(transition_tags.value())
+    sum_for_tag = {}
+    for k,v in transition_tags.items():
+        tot = sum(transition_tags[k].values())
+        sum_for_tag[k] = tot
+    print(sum_for_tag)
     #I iterate on items of the dictionary
+    '''
+    if v in transition_tags[]
+    tot = sum(transition_tags.value())
     for k,v in transition_tags.items():
         #I calculate the probability of every tag
         prob = v/tot
         #I update the dictionary with the probability
         transition_tags[k] = prob
-    print(transition_tags)
+    print(transition_tags)'''
     #print(sum(transition_tags.values()))
     return transition_tags
     
@@ -218,6 +228,7 @@ def estimate_emission_probabilities(corpus):
     tokens = []
     tags = []
     #Every f is a sentence, a list of tuple
+    '''
     for f in corpus:
         #Every i is a tuple, I take one tuple a time
         for i in f:
@@ -237,12 +248,13 @@ def estimate_emission_probabilities(corpus):
     #print(dict_for_tags)
     prob_tags = []
     tot = sum(dict_for_tags.values())
-    #For every tag I calculate the probability
-    for k,v in dict_for_tags.items():
+    #For every tag I calculate the probability'''
+    '''for k,v in dict_for_tags.items():
         #I calculate the probability of every tag
         prob_tags.append(v/tot)
         #I update the dictionary with the probability
         dict_for_tags[k] = v/tot
+    '''
     #print(dict_for_tags)
     #print(sum(dict_for_tags.values()))
     #tokens = set(tokens)
@@ -254,37 +266,33 @@ def estimate_emission_probabilities(corpus):
     # of occurences
     #Have to be done directly on the corpus
     for f in corpus:
-        '''for i in f:
-            #For every tuple of token and tag, I calculate the number of occurences
-            (a, b) = i
-            #I create a dictionary with tag and token and his following and number of occurences
-            if (a, b) in emission_tags.keys():
-                emission_tags[(a.lower(), b)] += 1
-            else:
-                emission_tags[(a.lower(), b)] = 1'''
         for i in f:
             (a, b) = i
             #I create a dictionary with tag and his following and number of occurences
-            print(i)
-            if b in emission_tags.keys():
-                if a.lower (emission_tags[b]).keys():
-                    emission_tags[b][a.lower] += 1
-                else:
-                    emission_tags
+            if b not in emission_tags.keys():
+                emission_tags[b] = {a.lower() : 1}
             else:
-                print(b)
-                emission_tags[b][a.lower] = 1
-    prob_tag_value = {}
+                if a.lower() not in emission_tags[b].keys():
+                    emission_tags[b][a.lower()] = 1
+                else:
+                    emission_tags[b][a.lower()] += 1
+    print(emission_tags)
+    '''prob_tag_value = {}
     for k,v in emission_tags.items():
         tot = sum(emission_tags[k].values())
         prob_tag_value[k] = tot
-    print(prob_tag_value)
+    print(prob_tag_value)'''
     #print(emission_tags)
     #Sommo tutte le occorrenze
     #Anche qui si considera solo il tag della parola
     freq_tag = []
     #freq_tag.append()
     #I iterate on items of the dictionary
+    sum_for_tag = {}
+    for k,v in emission_tags.items():
+        tot = sum(emission_tags[k].values())
+        sum_for_tag[k] = tot
+    print(sum_for_tag)
     '''for k,v in emission_tags.items():
         #I calculate the probability of every tag
         #Mi servono dei dizionari non delle stringhe altrimenti come faccio a trovare il tag in comune
@@ -331,7 +339,7 @@ if __name__ == '__main__':
     #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
     #estimate_initial_state_probabilities(corpus)
-    #estimate_transition_probabilities(x)
+    #estimate_transition_probabilities(corpus_training)
     #Controllare i commenti della emission
     estimate_emission_probabilities(corpus_training)
 
