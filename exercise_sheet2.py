@@ -201,6 +201,7 @@ def estimate_transition_probabilities(corpus):
         tot = sum(transition_tags[k].values())
         sum_for_tag[k] = tot
     #print(sum_for_tag)
+    valore_finale = 0
     for k,v in transition_tags.items():
         #I calculate tot one time for every k and remain the same for every tag that follow it
         tot = sum_for_tag.get(k)
@@ -209,17 +210,8 @@ def estimate_transition_probabilities(corpus):
             prob = v2/tot
             #I update the dictionary with the probability
             transition_tags[k][k2] = prob
-        print(sum(transition_tags[k].values()))
-    #I iterate on items of the dictionary
-    '''
-    if v in transition_tags[]
-    tot = sum(transition_tags.value())
-    for k,v in transition_tags.items():
-        #I calculate the probability of every tag
-        prob = v/tot
-        #I update the dictionary with the probability
-        transition_tags[k] = prob
-    print(transition_tags)'''
+        valore_finale = valore_finale + sum(transition_tags[k].values())
+    print(valore_finale)
     #print(sum(transition_tags.values()))
     return transition_tags
     
