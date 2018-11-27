@@ -3,6 +3,7 @@
 ################################################################################
 
 import operator
+import numpy as np
 '''
 This function can be used for importing the corpus.
 Parameters: path_to_file: string; path to the file containing the corpus
@@ -32,9 +33,11 @@ def import_corpus(path_to_file):
 
 def divide_in_training_and_test(corpus):
     test_corpus = corpus.pop()
-    training_corpus = corpus
-    return (training_corpus,test_corpus)
+    return (corpus,test_corpus)
 
+#Aggiungere gli unknown senza tenere in considerazione l'ordine, poi per l'unica a cui interessa l'ordine che
+# è il transitional uso quello vecchio tanto mi interessano solo i tag
+#L'importante è usare sempre quello con una stringa in meno
 def preprocess(corpus):
     unknown_tokens = []
     corpus_dict = {}
@@ -58,21 +61,27 @@ def preprocess(corpus):
                 corpus_dict[(a,b)] += 1
             else:
                 corpus_dict[(a,b)] = 1
-    for k,v in corpus_dict.keys():
+    for k,v in corpus_dict.items():
         if v == 1:
             unknown_tokens.append(k[0])
+    '''
     if any(isinstance(el, list) for el in corpus):
+    #Problem with the unknown because tuple don't support assignment
         for f in corpus:
             ##For every sentence I take only the first token and his tag
             for i in f:
                 for x in unknown_tokens:
+                    #Da modificare perché troppo inefficiente
                     if i[0] == x:
-                        i[0] = 'unknown'
+                        tmp = list(i)
+                        tmp[0] = 'unknown'
+                        i = tuple(tmp)
     else:
         for i in corpus:
             for x in unknown_tokens:
                 if i[0] == x:
                     i[0] = 'unknown'
+    '''
     return corpus
 
 
@@ -87,7 +96,7 @@ Parameters:	state: string
 Returns: float; initial probability of the given state
 '''
 def initial_state_probabilities(state, internal_representation):
-    return internal_representation.get(state)
+    return internal_representation.get(state, 0)
     
     
     
@@ -100,7 +109,7 @@ Parameters:	from_state: string;
 Returns: float; probability of transition from_state -> to_state
 '''
 def transition_probabilities(from_state, to_state, internal_representation):
-    return internal_representation[from_state].get(to_state)
+    return internal_representation[from_state].get(to_state, 0)
     
     
     
@@ -114,7 +123,7 @@ Parameters:	state: string;
 Returns: float; emission probability of the symbol emission_symbol if the current state is state
 '''
 def emission_probabilities(state, emission_symbol, internal_representation):
-    return internal_representation[state].get(emission_symbol)
+    return internal_representation[state].get(emission_symbol, 0)
     
     
     
@@ -284,19 +293,25 @@ Returns: list of strings; the most likely state sequence
 '''
 def most_likely_state_sequence(observed_symbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
     state_token_matrix = []
-    for i in range(observed_symbols.__len__()):
-        for j in transition_probabilities_parameters.keys():
-            in_value = initial_state_probabilities_parameters.get(j)
-            em_value = emission_probabilities[j].get(i)
-            if i == 0:
-                state_token_matrix[i][j] = in_value*em_value
-            #La transition value non va fatta sull'ultimo stato, perché non ne ho un successivo
-            tr_value = transition_probabilities_parameters[j].get(j+1)
-            state_token_matrix[i][j] = max(state_token_matrix[i])*tr_value*em_value
-    for j in transition_probabilities_parameters.keys().__len__():
-        #Controllare se va bene il massimo e se esce corretto
-        print(state_token_matrix[0][j])
-    print(max(state_token_matrix[0]))
+    most_lky_sqn = []
+    states = list(transition_probabilities_parameters.keys())
+    for i in range(states.__len__()):
+        state_token_matrix.append([])
+        for j in range(observed_symbols.__len__()):
+            in_value = initial_state_probabilities(states[i],initial_state_probabilities_parameters)
+            #print(in_value)
+            em_value = emission_probabilities(states[i],observed_symbols[j].lower(),emission_probabilities_parameters)
+            #print(em_value)
+            if j == 0:
+                state_token_matrix[i].append(in_value*em_value)
+            else:
+                tr_value = transition_probabilities(states[i-1],states[i],transition_probabilities_parameters)
+                state_token_matrix[i].append(max(state_token_matrix[i-1])*tr_value*em_value)
+    val_max = []
+    for i in state_token_matrix.T:
+        val_max.append(np.argmax(state_token_matrix[i]))
+    print(val_max)
+    #print(np.matrix(state_token_matrix))
     return most_lky_sqn
 
 
@@ -306,23 +321,22 @@ if __name__ == '__main__':
     #corpus.pop()
     (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
     #Il preprocess non funziona bene, ricontrollare, sul corpus training sembra funzionare bene
-    corpus_training = preprocess(corpus_training)
+    corpus_tr_with_unknown = preprocess(corpus_training)
+    #in test non m'interessa l'ordine perciò possa aggiungere gli unknown senza problemi
     corpus_test = preprocess(corpus_test)
-    print(corpus_test)
-    #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
-    in_prob = estimate_initial_state_probabilities(corpus)
-    print(initial_state_probabilities('O',in_prob))
+    in_prob = estimate_initial_state_probabilities(corpus_training)
+    #print(initial_state_probabilities('O',in_prob))
     tr_prob = estimate_transition_probabilities(corpus_training)
-    print(transition_probabilities('O','O',tr_prob))
-    em_prob = estimate_emission_probabilities(corpus_training)
-    print(emission_probabilities('O','the',em_prob))
+    #print(transition_probabilities('O','O',tr_prob))
+    em_prob = estimate_emission_probabilities(corpus_tr_with_unknown)
+    #print(emission_probabilities('O','the',em_prob))
     observed_symbols = []
     for x in corpus_test:
         (a,b) = x
         observed_symbols.append(a)
     #print(observed_symbols)
-    #most_lky_sqn = most_likely_state_sequence(observed_symbols,in_prob,tr_prob,em_prob)
+    most_lky_sqn = most_likely_state_sequence(observed_symbols,in_prob,tr_prob,em_prob)
     #print(most_lky_sqn)
 
 
