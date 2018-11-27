@@ -308,10 +308,16 @@ def most_likely_state_sequence(observed_symbols, initial_state_probabilities_par
                 tr_value = transition_probabilities(states[i-1],states[i],transition_probabilities_parameters)
                 state_token_matrix[i].append(max(state_token_matrix[i-1])*tr_value*em_value)
     val_max = []
-    for i in state_token_matrix.T:
+    #Estrarre il massimo dalla colonna o riga in base a come decido di implementarlo
+    #Serve per ogni parola lo stato con probabilità massima andando in backward
+    #Trovato il massimo, ritorno l'indice e con questo cerco lo stato corrispondente
+    #Potrei tornare direttamente l'indice visto che il valore del massimo non ci interessa
+    state_token_matrix = np.asarray(state_token_matrix)
+    for i in range(len(state_token_matrix.T)):
         val_max.append(np.argmax(state_token_matrix[i]))
-    print(val_max)
-    #print(np.matrix(state_token_matrix))
+        index = state_token_matrix[i].index()
+        state = states[index]
+        most_lky_sqn.append(state)
     return most_lky_sqn
 
 
