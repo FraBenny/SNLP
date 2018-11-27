@@ -40,9 +40,18 @@ def preprocess(corpus):
     corpus_dict = {}
     #Every f is a sentence, a list of tuple
     #I've to take the corpus and trasform it in a list
-    for f in corpus:
-        ##For every sentence I take only the first token and his tag
-        for i in f:
+    if any(isinstance(el, list) for el in corpus):
+        for f in corpus:
+            ##For every sentence I take only the first token and his tag
+            for i in f:
+                ##I create a dictionary with tags and number of occurences
+                (a, b) = i
+                if (a,b) in corpus_dict.keys():
+                    corpus_dict[(a,b)] += 1
+                else:
+                    corpus_dict[(a,b)] = 1
+    else:
+        for i in corpus:
             ##I create a dictionary with tags and number of occurences
             (a, b) = i
             if (a,b) in corpus_dict.keys():
@@ -52,13 +61,20 @@ def preprocess(corpus):
     for k,v in corpus_dict.keys():
         if v == 1:
             unknown_tokens.append(k[0])
-    for f in corpus:
-        ##For every sentence I take only the first token and his tag
-        for i in f:
+    if any(isinstance(el, list) for el in corpus):
+        for f in corpus:
+            ##For every sentence I take only the first token and his tag
+            for i in f:
+                for x in unknown_tokens:
+                    if i[0] == x:
+                        i[0] = 'unknown'
+    else:
+        for i in corpus:
             for x in unknown_tokens:
                 if i[0] == x:
                     i[0] = 'unknown'
     return corpus
+
 
 
 
@@ -260,15 +276,28 @@ def estimate_emission_probabilities(corpus):
 # Exercise 2 ###################################################################
 ''''
 Implement the Viterbi algorithm for computing the most likely state sequence given a sequence of observed symbols.
-Parameters: observed_smbols: list of strings; the sequence of observed symbols
+Parameters: observed_symbols: list of strings; the sequence of observed symbols
             initial_state_probabilities_parameters: data structure containing the parameters of the probability distribution of the initial states, returned by estimate_initial_state_probabilities
             transition_probabilities_parameters: data structure containing the parameters of the matrix of transition probabilities, returned by estimate_transition_probabilities
             emission_probabilities_parameters: data structure containing the parameters of the matrix of emission probabilities, returned by estimate_emission_probabilities
 Returns: list of strings; the most likely state sequence
 '''
-def most_likely_state_sequence(observed_smbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
-
-    pass
+def most_likely_state_sequence(observed_symbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
+    state_token_matrix = []
+    for i in range(observed_symbols.__len__()):
+        for j in transition_probabilities_parameters.keys():
+            in_value = initial_state_probabilities_parameters.get(j)
+            em_value = emission_probabilities[j].get(i)
+            if i == 0:
+                state_token_matrix[i][j] = in_value*em_value
+            #La transition value non va fatta sull'ultimo stato, perché non ne ho un successivo
+            tr_value = transition_probabilities_parameters[j].get(j+1)
+            state_token_matrix[i][j] = max(state_token_matrix[i])*tr_value*em_value
+    for j in transition_probabilities_parameters.keys().__len__():
+        #Controllare se va bene il massimo e se esce corretto
+        print(state_token_matrix[0][j])
+    print(max(state_token_matrix[0]))
+    return most_lky_sqn
 
 
 #For transitional and emission is better to create a nested dictionary
@@ -276,7 +305,10 @@ if __name__ == '__main__':
     corpus = import_corpus("corpus_ner.txt")
     #corpus.pop()
     (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
+    #Il preprocess non funziona bene, ricontrollare, sul corpus training sembra funzionare bene
     corpus_training = preprocess(corpus_training)
+    corpus_test = preprocess(corpus_test)
+    print(corpus_test)
     #print(corpus_training.get('unknown'))
     #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
     in_prob = estimate_initial_state_probabilities(corpus)
@@ -285,7 +317,13 @@ if __name__ == '__main__':
     print(transition_probabilities('O','O',tr_prob))
     em_prob = estimate_emission_probabilities(corpus_training)
     print(emission_probabilities('O','the',em_prob))
-
+    observed_symbols = []
+    for x in corpus_test:
+        (a,b) = x
+        observed_symbols.append(a)
+    #print(observed_symbols)
+    #most_lky_sqn = most_likely_state_sequence(observed_symbols,in_prob,tr_prob,em_prob)
+    #print(most_lky_sqn)
 
 
 
