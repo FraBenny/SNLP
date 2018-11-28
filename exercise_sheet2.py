@@ -35,14 +35,11 @@ def divide_in_training_and_test(corpus):
     test_corpus = corpus.pop()
     return (corpus,test_corpus)
 
-#Aggiungere gli unknown senza tenere in considerazione l'ordine, poi per l'unica a cui interessa l'ordine che
-# è il transitional uso quello vecchio tanto mi interessano solo i tag
-#L'importante è usare sempre quello con una stringa in meno
+
 def preprocess(corpus):
     unknown_tokens = []
     corpus_dict = {}
     #Every f is a sentence, a list of tuple
-    #I've to take the corpus and transform it in a list
     #I controll if is a list of list(corpus_training) or a simple list(corpus_test)
     if any(isinstance(el, list) for el in corpus):
         for f in corpus:
@@ -66,28 +63,16 @@ def preprocess(corpus):
     for k,v in corpus_dict.items():
         if v == 1:
             unknown_tokens.append(k[0])
+    unknown_tokens = set(unknown_tokens)
     if any(isinstance(el, list) for el in corpus):
         for f in corpus:
-            temp = f
-            new_list = []
-            value = False
-            for i in f:
-                for x in unknown_tokens:
-                    if i[0].lower() == x:
-                        value = True
-                        (a,b) = i
-                        new_list.append(('unknown',b))
-            #If I have found an unknown value i remove all the list and put the new one
-            if value:
-                corpus.remove(temp)
-                corpus.append(new_list)
+            for i in range(f.__len__()):
+                if f[i][0] in unknown_tokens:
+                    f[i] = ("unknown", f[i][1])
     else:
-        for i in corpus:
-            for x in unknown_tokens:
-                if i[0].lower() == x:
-                    (a,b) = i
-                    corpus.remove(i)
-                    corpus.append(('unknown',b))
+        for i in range(corpus.__len__()):
+            if corpus[i][0] in unknown_tokens:
+                corpus[i] = ("unknown", corpus[i][1])
     return corpus
 
 
@@ -244,37 +229,28 @@ Parameters: observed_symbols: list of strings; the sequence of observed symbols
 Returns: list of strings; the most likely state sequence
 '''
 def most_likely_state_sequence(observed_symbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
-    state_token_matrix = []
+    sequence = []
     most_lky_sqn = []
     delta_values = []
     temp_delta_values = []
     states = list(transition_probabilities_parameters.keys())
-    for i in range(states.__len__()):
-        state_token_matrix.append([])
-        for j in range(observed_symbols.__len__()):
-            in_value = initial_state_probabilities(states[i],initial_state_probabilities_parameters)
-            #print(in_value)
-            em_value = emission_probabilities(states[i],observed_symbols[j],emission_probabilities_parameters)
-            #print(em_value)
-            if j == 0:
-                state_token_matrix[i].append(in_value*em_value)
-                delta_values.append(state_token_matrix[i][j])
+    for i in range(observed_symbols.__len__()):
+        for j in range(states.__len__()):
+            in_value = initial_state_probabilities(states[j],initial_state_probabilities_parameters)
+            em_value = emission_probabilities(states[j],observed_symbols[i],emission_probabilities_parameters)
+            if i == 0:
+                tmp = np.log(in_value*em_value)
+                delta_values.append(tmp)
             else:
-                tr_value = transition_probabilities(states[i-1],states[i],transition_probabilities_parameters)
-                for x in range(states.__len__()):
-                    tmp =
-                delta_values = delta_values[i-1]
-                state_token_matrix[i].append(max(state_token_matrix[i-1])*tr_value*em_value)
+                for s in states:
+                    tr_value = transition_probabilities(states[j],s,transition_probabilities_parameters)
+                    tmp = np.max(sequence[i-1])+np.log(tr_value)+np.log(em_value)
+                    temp_delta_values.append(tmp)
+                delta_values.append(max(temp_delta_values))
+        sequence.append(delta_values)
 
-    #Estrarre il massimo dalla colonna o riga in base a come decido di implementarlo
-    #Serve per ogni parola lo stato con probabilità massima andando in backward
-    #Trovato il massimo, ritorno l'indice e con questo cerco lo stato corrispondente
-    #Potrei tornare direttamente l'indice visto che il valore del massimo non ci interessa
-    #val_max = []
-    state_token_matrix = np.asarray(state_token_matrix)
-    state_token_matrix_T = state_token_matrix.T
-    for i in range(len(state_token_matrix.T)):
-        index_max = np.argmax(state_token_matrix_T[i])
+    for i in range(sequence.__len__()):
+        index_max = np.argmax(sequence[i])
         most_lky_sqn.append(states[index_max])
     return most_lky_sqn
 
@@ -282,15 +258,12 @@ def most_likely_state_sequence(observed_symbols, initial_state_probabilities_par
 #For transitional and emission is better to create a nested dictionary
 if __name__ == '__main__':
     corpus = import_corpus("corpus_ner.txt")
-    #corpus.pop()
     (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
-    #Il preprocess non funziona bene, ricontrollare, sul corpus training sembra funzionare bene
-    #corpus_tr_with_unknown = preprocess(corpus_training)
-    #corpus_test = preprocess(corpus_test)
+    corpus_tr_with_unknown = preprocess(corpus_training)
+    corpus_test = preprocess(corpus_test)
     in_prob = estimate_initial_state_probabilities(corpus_training)
     tr_prob = estimate_transition_probabilities(corpus_training)
-    #em_prob = estimate_emission_probabilities(corpus_tr_with_unknown)
-    em_prob = estimate_emission_probabilities(corpus_training)
+    em_prob = estimate_emission_probabilities(corpus_tr_with_unknown)
     observed_symbols = []
     for x in corpus_test:
         (a,b) = x
