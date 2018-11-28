@@ -25,9 +25,9 @@ def import_corpus(path_to_file):
             continue
                 
         parts = line.split(' ')
-        #print("second"+parts[0]+"terzo"+parts[-1])
+
         sentence.append((parts[0], parts[-1]))
-        #print(sentence)
+
     f.close()        
     return sentences
 
@@ -42,12 +42,12 @@ def preprocess(corpus):
     unknown_tokens = []
     corpus_dict = {}
     #Every f is a sentence, a list of tuple
-    #I've to take the corpus and trasform it in a list
+    #I've to take the corpus and transform it in a list
+    #I controll if is a list of list(corpus_training) or a simple list(corpus_test)
     if any(isinstance(el, list) for el in corpus):
         for f in corpus:
-            ##For every sentence I take only the first token and his tag
             for i in f:
-                ##I create a dictionary with tags and number of occurences
+                ##I create a dictionary with tags and number of occurrences
                 (a, b) = i
                 a = a.lower()
                 if (a,b) in corpus_dict.keys():
@@ -56,13 +56,13 @@ def preprocess(corpus):
                     corpus_dict[(a,b)] = 1
     else:
         for i in corpus:
-            ##I create a dictionary with tags and number of occurences
             (a, b) = i
             a = a.lower()
             if (a,b) in corpus_dict.keys():
                 corpus_dict[(a,b)] += 1
             else:
                 corpus_dict[(a,b)] = 1
+    #I create a list with all tokens which occur one time
     for k,v in corpus_dict.items():
         if v == 1:
             unknown_tokens.append(k[0])
@@ -80,7 +80,7 @@ def preprocess(corpus):
             #If I have found an unknown value i remove all the list and put the new one
             if value:
                 corpus.remove(temp)
-                corpus.append()
+                corpus.append(new_list)
     else:
         for i in corpus:
             for x in unknown_tokens:
@@ -146,12 +146,12 @@ def estimate_initial_state_probabilities(corpus):
     for f in corpus:
         #For every sentence I take only the first token and his tag
         (a,b) = f[0]
-        #I create a dictionary with tags and number of occurences
+        #I create a dictionary with initial tags and number of occurrences
         if b in initial_tags.keys():
             initial_tags[b] += 1
         else:
             initial_tags[b] = 1
-    #I take the sum of all occurences
+    #I take the sum of all occurrences
     tot = sum(initial_tags.values())
     #I iterate on items of the dictionary
     for k,v in initial_tags.items():
@@ -159,7 +159,6 @@ def estimate_initial_state_probabilities(corpus):
         prob = v/tot
         #I update the dictionary with the probability
         initial_tags[k] = prob
-    #Every f is a sentence, a list of tuple
     return initial_tags
 
     
@@ -173,11 +172,10 @@ def estimate_transition_probabilities(corpus):
     transition_tags = {}
     for f in corpus:
         #For every sentence I take the token and the tag of one and his next, two tuple a time
-        #Viene considerata l'ultima? In teoria no perché altrimenti darebbe errore
         for i in range(len(f)-1):
             (a, b) = f[i]
             (c, d) = f[i+1]
-            #I create a dictionary with tag and his following and number of occurences
+            #I create a dictionary with tag and his following and number of occurrences
             if b not in transition_tags.keys():
                 transition_tags[b] = {d : 1}
             else:
@@ -185,9 +183,7 @@ def estimate_transition_probabilities(corpus):
                     transition_tags[b][d] = 1
                 else:
                     transition_tags[b][d] += 1
-    #I take the sum of all occurences
-    #Devo prendere solo le occorrenze del tag successivo
-    #E quello successivo se è alla fine della frase
+    #I take the sum of all occurernces
     sum_for_tag = {}
     for k,v in transition_tags.items():
         tot = sum(transition_tags[k].values())
@@ -201,9 +197,7 @@ def estimate_transition_probabilities(corpus):
             #I update the dictionary with the probability
             transition_tags[k][k2] = prob
     return transition_tags
-    
-    
-    
+
     
 '''
 Implement a function for estimating the parameters of the matrix of emission probabilities
@@ -213,15 +207,10 @@ Returns: data structure containing the parameters of the matrix of emission prob
 '''
 def estimate_emission_probabilities(corpus):
     emission_tags = {}
-    #Every f is a sentence, a list of tuple
-    #I create a list with every tag and token, but is not correct, if a word didn't have a token don't need to have it know
-    #otherwise the probability is the same for every word and tag, so I've to take the initial list of tuple and calculate the number
-    # of occurences
-    #Have to be done directly on the corpus
     for f in corpus:
         for i in f:
             (a, b) = i
-            #I create a dictionary with tag and his following and number of occurences
+            #I create a dictionary with tag and his token with number of occurrences
             if b not in emission_tags.keys():
                 emission_tags[b] = {a.lower() : 1}
             else:
@@ -229,26 +218,21 @@ def estimate_emission_probabilities(corpus):
                     emission_tags[b][a.lower()] = 1
                 else:
                     emission_tags[b][a.lower()] += 1
-    #Anche qui si considera solo il tag della parola
     #I iterate on items of the dictionary
     sum_for_tag = {}
     for k,v in emission_tags.items():
         tot = sum(emission_tags[k].values())
         sum_for_tag[k] = tot
     for k,v in emission_tags.items():
-        #I calculate tot one time for every k and remain the same for every token link to that
+        #I calculate 'tot' one time for every k and remain the same for every token link to that
         tot = sum_for_tag.get(k)
         for k2,v2 in emission_tags[k].items():
-            #Calcolo la probabilità token e tag
+            #I calculate the probability that a tag is linked to that token
             prob = v2/tot
             #I update the dictionary with the probability
             emission_tags[k][k2] = prob
     return emission_tags
 
-    
-    
-    
-    
     
 # Exercise 2 ###################################################################
 ''''
@@ -262,30 +246,36 @@ Returns: list of strings; the most likely state sequence
 def most_likely_state_sequence(observed_symbols, initial_state_probabilities_parameters, transition_probabilities_parameters, emission_probabilities_parameters):
     state_token_matrix = []
     most_lky_sqn = []
+    delta_values = []
+    temp_delta_values = []
     states = list(transition_probabilities_parameters.keys())
     for i in range(states.__len__()):
         state_token_matrix.append([])
         for j in range(observed_symbols.__len__()):
             in_value = initial_state_probabilities(states[i],initial_state_probabilities_parameters)
             #print(in_value)
-            em_value = emission_probabilities(states[i],observed_symbols[j].lower(),emission_probabilities_parameters)
+            em_value = emission_probabilities(states[i],observed_symbols[j],emission_probabilities_parameters)
             #print(em_value)
             if j == 0:
                 state_token_matrix[i].append(in_value*em_value)
+                delta_values.append(state_token_matrix[i][j])
             else:
                 tr_value = transition_probabilities(states[i-1],states[i],transition_probabilities_parameters)
+                for x in range(states.__len__()):
+                    tmp =
+                delta_values = delta_values[i-1]
                 state_token_matrix[i].append(max(state_token_matrix[i-1])*tr_value*em_value)
-    val_max = []
+
     #Estrarre il massimo dalla colonna o riga in base a come decido di implementarlo
     #Serve per ogni parola lo stato con probabilità massima andando in backward
     #Trovato il massimo, ritorno l'indice e con questo cerco lo stato corrispondente
     #Potrei tornare direttamente l'indice visto che il valore del massimo non ci interessa
+    #val_max = []
     state_token_matrix = np.asarray(state_token_matrix)
+    state_token_matrix_T = state_token_matrix.T
     for i in range(len(state_token_matrix.T)):
-        val_max.append(np.argmax(state_token_matrix[i]))
-        index = state_token_matrix[i].index()
-        state = states[index]
-        most_lky_sqn.append(state)
+        index_max = np.argmax(state_token_matrix_T[i])
+        most_lky_sqn.append(states[index_max])
     return most_lky_sqn
 
 
@@ -295,23 +285,18 @@ if __name__ == '__main__':
     #corpus.pop()
     (corpus_training, corpus_test) = divide_in_training_and_test(corpus)
     #Il preprocess non funziona bene, ricontrollare, sul corpus training sembra funzionare bene
-    corpus_tr_with_unknown = preprocess(corpus_training)
-    #in test non m'interessa l'ordine perciò possa aggiungere gli unknown senza problemi
-    corpus_test = preprocess(corpus_test)
-    #Non vengono presi tutti i tag ed i valori delle probabilità sono sbagliati
+    #corpus_tr_with_unknown = preprocess(corpus_training)
+    #corpus_test = preprocess(corpus_test)
     in_prob = estimate_initial_state_probabilities(corpus_training)
-    #print(initial_state_probabilities('O',in_prob))
     tr_prob = estimate_transition_probabilities(corpus_training)
-    #print(transition_probabilities('O','O',tr_prob))
-    em_prob = estimate_emission_probabilities(corpus_tr_with_unknown)
-    #print(emission_probabilities('O','the',em_prob))
+    #em_prob = estimate_emission_probabilities(corpus_tr_with_unknown)
+    em_prob = estimate_emission_probabilities(corpus_training)
     observed_symbols = []
     for x in corpus_test:
         (a,b) = x
-        observed_symbols.append(a)
-    #print(observed_symbols)
+        observed_symbols.append(a.lower())
     most_lky_sqn = most_likely_state_sequence(observed_symbols,in_prob,tr_prob,em_prob)
-    #print(most_lky_sqn)
+    print(most_lky_sqn)
 
 
 
