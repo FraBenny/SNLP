@@ -49,6 +49,7 @@ def preprocess(corpus):
             for i in f:
                 ##I create a dictionary with tags and number of occurences
                 (a, b) = i
+                a = a.lower()
                 if (a,b) in corpus_dict.keys():
                     corpus_dict[(a,b)] += 1
                 else:
@@ -57,6 +58,7 @@ def preprocess(corpus):
         for i in corpus:
             ##I create a dictionary with tags and number of occurences
             (a, b) = i
+            a = a.lower()
             if (a,b) in corpus_dict.keys():
                 corpus_dict[(a,b)] += 1
             else:
@@ -64,24 +66,28 @@ def preprocess(corpus):
     for k,v in corpus_dict.items():
         if v == 1:
             unknown_tokens.append(k[0])
-    '''
     if any(isinstance(el, list) for el in corpus):
-    #Problem with the unknown because tuple don't support assignment
         for f in corpus:
-            ##For every sentence I take only the first token and his tag
+            temp = f
+            new_list = []
+            value = False
             for i in f:
                 for x in unknown_tokens:
-                    #Da modificare perché troppo inefficiente
-                    if i[0] == x:
-                        tmp = list(i)
-                        tmp[0] = 'unknown'
-                        i = tuple(tmp)
+                    if i[0].lower() == x:
+                        value = True
+                        (a,b) = i
+                        new_list.append(('unknown',b))
+            #If I have found an unknown value i remove all the list and put the new one
+            if value:
+                corpus.remove(temp)
+                corpus.append()
     else:
         for i in corpus:
             for x in unknown_tokens:
-                if i[0] == x:
-                    i[0] = 'unknown'
-    '''
+                if i[0].lower() == x:
+                    (a,b) = i
+                    corpus.remove(i)
+                    corpus.append(('unknown',b))
     return corpus
 
 
@@ -135,8 +141,6 @@ Returns: data structure containing the parameters of the probability distributio
             use this data structure for the argument internal_representation of the function initial_state_probabilities
 '''
 def estimate_initial_state_probabilities(corpus):
-    prova = {}
-    lista = []
     initial_tags = {}
     #Take only first word of a sentence
     for f in corpus:
@@ -147,7 +151,6 @@ def estimate_initial_state_probabilities(corpus):
             initial_tags[b] += 1
         else:
             initial_tags[b] = 1
-    #print(initial_tags)
     #I take the sum of all occurences
     tot = sum(initial_tags.values())
     #I iterate on items of the dictionary
@@ -156,44 +159,9 @@ def estimate_initial_state_probabilities(corpus):
         prob = v/tot
         #I update the dictionary with the probability
         initial_tags[k] = prob
-    #print(initial_tags)
-    #print(sum(initial_tags.values()))
     #Every f is a sentence, a list of tuple
-    for f in corpus:
-        #Every i is a tuple, I take one tuple a time
-        for i in f:
-            #I get every character lower
-            #I create a list with all tokens
-            lista.append(i[0].lower())
-            #I create a dictionary with token and tag
-            prova[i[0].lower()] = i[1]
-    #print(lista)
-    #I create the set of tokens
-    k = set(lista)
-    #I create a set with all states
-    state = set(prova.values())
-    #print(prova.keys())
-    #print(lista.__len__())
-    words = {}
-    #I evaluate for every token the number of occurences
-    for i in lista:
-        if i in words.keys():
-            words[i] += 1
-        else:
-            words[i] = 1
-    #I sort the dictionary
-    sorted_x = sorted(words.items(), key=operator.itemgetter(1))
-    #print(sorted_x)
-    x = list(words.keys())
-    #print(x)
-    #I put unknown for every token that occurence only one time
-    for i in x:
-        words['unknown'] = words.pop(i) if words.get(i) == 1 else False
-    #print(words)
-    #I've to take only the first word of every sentence to evaluate for the initial probability
     return initial_tags
-    
-    
+
     
 '''
 Implement a function for estimating the parameters of the matrix of transition probabilities
