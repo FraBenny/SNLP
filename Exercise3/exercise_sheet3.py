@@ -28,7 +28,7 @@ def import_corpus(path_to_file):
             continue
 
         parts = line.split(' ')
-        sentence.append((parts[0], parts[-1]))
+        sentence.append((parts[0].lower(), parts[-1]))
 
     f.close()
     return sentences
@@ -61,8 +61,15 @@ class MaxEntModel(object):
         Parameters: corpus: list of list representing the corpus, returned by the function 'import_corpus'
         '''
         self.corpus = corpus
-        
-        # your code here
+        words = []
+        labels = []
+        for f in corpus:
+            for (a,b) in f:
+                words.append(a)
+                labels.append(b)
+        words = set(words)
+        labels = set(labels)
+        return True
     
     
     
@@ -194,4 +201,8 @@ class MaxEntModel(object):
         
         pass
     
+if __name__ == '__main__':
+    corpus = import_corpus("corpus_pos.txt")
+    prova = MaxEntModel()
+    prova.initialize(corpus)
 
