@@ -62,37 +62,44 @@ class MaxEntModel(object):
         '''
         self.corpus = corpus
         words = []
-        labels = []
+        self.labels = []
         for f in corpus:
             for (a,b) in f:
                 words.append(a)
-                labels.append(b)
+                self.labels.append(b)
         words = set(words)
-        self.labels = set(labels)
+        self.labels = set(self.labels)
         #I create a dictionary with every feature
         #I've to create a dictionary of dictionary
         #otherwise every word has associated only one label
+        #The values of the second dictionary is the number of the feature
         #In the dictionary we have all possible feature
         #but we have to understand where is 1 or 0
-        feature = {}
+        self.feature_indices = {}
+        list_labels = list(self.labels)
+        k = 1
         for i in words:
-            for j in labels:
+            for j in list_labels:
                 #Every word with every label
-                feature[i] = {j : 1}
+                self.feature_indices[i] = {j : k}
+                k = k + 1
                 #Every label with itself
-                feature[j] = {j : 1}
+                self.feature_indices[j] = {j : k}
+                k = k + 1
                 #Every label with the next
-                if j != labels[0]:
-                    feature[last_label] = {j : 1}
+                if j != list_labels[0]:
+                    if last_label != j:
+                        self.feature_indices[last_label] = {j : k}
+                        k = k + 1
                 #I save the last label
                 last_label = j
-        print(feature)
+        print(self.feature_indices)
         n_feature = 0
-        for i in feature.keys():
-            n_feature = sum(feature[i].values()) + n_feature
-            print(n_feature)
+        for i in self.feature_indices.keys():
+            n_feature = (list(self.feature_indices[i].keys())).__len__() + n_feature
+            #print(n_feature)
         print(n_feature)
-        self.theta = [[1]*n_feature]
+        self.theta = np.array([[1]*n_feature])
         print(self.theta)
         return True
     
