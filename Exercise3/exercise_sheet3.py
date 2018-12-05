@@ -68,7 +68,32 @@ class MaxEntModel(object):
                 words.append(a)
                 labels.append(b)
         words = set(words)
-        labels = set(labels)
+        self.labels = set(labels)
+        #I create a dictionary with every feature
+        #I've to create a dictionary of dictionary
+        #otherwise every word has associated only one label
+        #In the dictionary we have all possible feature
+        #but we have to understand where is 1 or 0
+        feature = {}
+        for i in words:
+            for j in labels:
+                #Every word with every label
+                feature[i] = {j : 1}
+                #Every label with itself
+                feature[j] = {j : 1}
+                #Every label with the next
+                if j != labels[0]:
+                    feature[last_label] = {j : 1}
+                #I save the last label
+                last_label = j
+        print(feature)
+        n_feature = 0
+        for i in feature.keys():
+            n_feature = sum(feature[i].values()) + n_feature
+            print(n_feature)
+        print(n_feature)
+        self.theta = [[1]*n_feature]
+        print(self.theta)
         return True
     
     
