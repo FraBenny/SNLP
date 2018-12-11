@@ -103,11 +103,8 @@ class MaxEntModel(object):
         print(self.theta)
         return True
     
+
     
-    
-    
-    # Exercise 1 b) ###################################################################
-    def get_active_features(self, word, label, prev_label):
         '''
         Compute the vector of active features.
         Parameters: word: string; a word at some position i of a given sentence
@@ -115,25 +112,55 @@ class MaxEntModel(object):
                     prev_label: string; the label of the word at position i-1
         Returns: (numpy) array containing only zeros and ones.
         '''
-        
-        # your code here
-        
-        pass
-        
+    # Exercise 1 b) ###################################################################
+    #Ma lo start lo dobbiamo considerare?
+    def get_active_features(self, word, label, prev_label):
+        #The actives feature can be 2 for every word:
+        #1.For the word with that label
+        #2.The prev_label and the follow
+        #I search the word inside the dict of feature
+        x = self.feature_indices.get(word)
+        #I search for that word the label and I take the number of the feature
+        y = x.get(label)
+        #I search the prev_label inside the dict of feature
+        z = self.feature_indices.get(prev_label)
+        #I search the label with that prev_label and I take the number of the feature
+        w = z.get(label)
+        #I create an array with all zeros with the same shape of theta
+        f = np.zeros(self.theta.__len__())
+        #I trasform the two feature active features to 1
+        f[y] = 1
+        f[w] = 1
+        return f
 
-
-
-    # Exercise 2 a) ###################################################################
-    def cond_normalization_factor(self, word, prev_label):
-        '''
+        ''' 
         Compute the normalization factor 1/Z(x_i).
         Parameters: word: string; a word x_i at some position i of a given sentence
                     prev_label: string; the label of the word at position i-1
         Returns: float
         '''
-        
-        # your code here
-        
+    # Exercise 2 a) ###################################################################
+    #pERCHé NON ABBIAMO ANCHE IL LABEL PRECEDENTE?
+    #Abbiamo il prev_label perché cerchiamo le feature a 1 con tutti i label per la parola ed il
+    #label precedente
+    #Perché nell'esempio sulle slide non sono considerate le feature con i due label uno dietro all'altro?
+    def cond_normalization_factor(self, word, prev_label):
+        z = np.float
+        #Uso la lista delle label per trovare tutte le feature a 1
+        for x in self.labels:
+            #Chiamo la funzione che mi ritorna l'array con le feature a 1
+            q = self.get_active_features(word,x,prev_label)
+            #In w vanno a finire gli indici di tutti gli elementi che non sono a 0
+            #A me interessa unicamente sapere quanti sono gli elementi
+            #perciò se è una lista, basta sapere quanto è lunga
+            w = np.nonzero(q)
+            print(w)
+            #r rappresenta il numero di feature attive per quella combinazione
+            r = w.count()
+            #Calcolo esponenziale on quell'indice andando poi a sommare continuamente
+            #con ciò calcolato precedentemente
+            z = np.exp(r) + z
+        return z
         pass
     
     
@@ -232,6 +259,69 @@ class MaxEntModel(object):
         # your code here
         
         pass
+
+
+    # Exercise 5 a) ###################################################################
+    def empirical_feature_count_batch(self, sentences):
+        '''
+        Predict the empirical feature count for a set of sentences
+        Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
+        Returns: (numpy) array containing the empirical feature count
+        '''
+
+        # your code here
+
+
+
+
+    # Exercise 5 a) ###################################################################
+    def expected_feature_count_batch(self, sentences):
+        '''
+        Predict the expected feature count for a set of sentences
+        Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
+        Returns: (numpy) array containing the expected feature count
+        '''
+
+        # your code here
+
+
+
+
+    # Exercise 5 b) ###################################################################
+    def train_batch(self, number_iterations, batch_size, learning_rate=0.1):
+        '''
+        Implement the training procedure which uses 'batch_size' sentences from to training corpus
+        to compute the gradient.
+        Parameters: number_iterations: int; number of parameter updates to do
+                    batch_size: int; number of sentences to use in each iteration
+                    learning_rate: float
+        '''
+
+        # your code here
+
+        pass
+
+
+
+
+    # Exercise 5 c) ###################################################################
+    def evaluate(corpus):
+        '''
+        Compare the training methods 'train' and 'train_batch' in terms of convergence rate
+        Parameters: corpus: list of list; a corpus returned by 'import_corpus'
+        '''
+
+        # your code here
+
+        pass
+
+
+
+
+
+
+
+
     
 if __name__ == '__main__':
     corpus = import_corpus("corpus_pos.txt")
