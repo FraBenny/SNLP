@@ -5,6 +5,15 @@ import math
 import sys
 import numpy as np
 
+'''
+DUBBI:
+Ha senso considerare la label 'start' come successiva?
+Vanno considerate le feature con due label una dopo l'altra nell'esercizio 2a) e 2b)?
+Probabilmente devo trattare word, come possa essere la label e non per forza la parola
+Perchè comunque expectation count è uno per ogni feature, in questo caso un array per ogni parola
+#Dove prendere il prev_label? nel 4 b)
+'''
+
 
 '''
 This function can be used for importing the corpus.
@@ -54,6 +63,7 @@ class MaxEntModel(object):
     
     
     # Exercise 1 a) ###################################################################
+    #Devo aggiungere start
     def initialize(self, corpus):
         '''
         Initialize the maximun entropy model, i.e., build the set of all features, the set of all labels
@@ -69,6 +79,7 @@ class MaxEntModel(object):
                 self.labels.append(b)
         words = set(words)
         self.labels = set(self.labels)
+        self.labels.add('start')
         #I create a dictionary with every feature
         #I've to create a dictionary of dictionary
         #otherwise every word has associated only one label
@@ -77,6 +88,7 @@ class MaxEntModel(object):
         #but we have to understand where is 1 or 0
         self.feature_indices = {}
         list_labels = list(self.labels)
+        last_label = 0
         k = 1
         for i in words:
             for j in list_labels:
@@ -93,14 +105,13 @@ class MaxEntModel(object):
                         k = k + 1
                 #I save the last label
                 last_label = j
-        print(self.feature_indices)
+        #print(self.feature_indices)
         n_feature = 0
         for i in self.feature_indices.keys():
             n_feature = (list(self.feature_indices[i].keys())).__len__() + n_feature
             #print(n_feature)
-        print(n_feature)
-        self.theta = np.array([[1]*n_feature])
-        print(self.theta)
+        #print(n_feature)
+        self.theta = np.array([1]*n_feature)
         return True
     
 
@@ -113,206 +124,242 @@ class MaxEntModel(object):
         Returns: (numpy) array containing only zeros and ones.
         '''
     # Exercise 1 b) ###################################################################
-    #Ma lo start lo dobbiamo considerare?
+    #Ma lo start lo dobbiamo considerare? Si
     def get_active_features(self, word, label, prev_label):
+        y = 0
+        w = 0
         #The actives feature can be 2 for every word:
         #1.For the word with that label
         #2.The prev_label and the follow
         #I search the word inside the dict of feature
-        x = self.feature_indices.get(word)
-        #I search for that word the label and I take the number of the feature
-        y = x.get(label)
-        #I search the prev_label inside the dict of feature
-        z = self.feature_indices.get(prev_label)
-        #I search the label with that prev_label and I take the number of the feature
-        w = z.get(label)
+        if word in self.feature_indices:#Va bene così o devo scrivere self.feature_indices.keys()
+            x = self.feature_indices.get(word)
+            #I search for that word the label and I take the number of the feature
+            if label in self.feature_indices[word]:#Va bene così o devo scrivere self.feature_indices[word].keys()
+                y = x.get(label)
+        if prev_label in self.feature_indices:#Va bene così o devo scrivere self.feature_indices.keys()
+            #I search the prev_label inside the dict of feature
+            z = self.feature_indices.get(prev_label)
+            #I search the label with that prev_label and I take the number of the feature
+            if label in self.feature_indices[prev_label]:#Va bene così o devo scrivere self.feature_indices[prev_label].keys()
+                w = z.get(label)
         #I create an array with all zeros with the same shape of theta
         f = np.zeros(self.theta.__len__())
+        print("f1")
+        print(f)
+        #print("theta")
+        #print(self.theta.__len__())
         #I trasform the two feature active features to 1
-        f[y] = 1
-        f[w] = 1
+        print("y")
+        print(y)
+        print("w")
+        print(w)
+        if y != 0:
+            f[y] = 1
+        if w != 0:
+            f[w] = 1
+        print("f2")
+        print(f)
         return f
 
-        ''' 
-        Compute the normalization factor 1/Z(x_i).
-        Parameters: word: string; a word x_i at some position i of a given sentence
-                    prev_label: string; the label of the word at position i-1
-        Returns: float
-        '''
+    ''' 
+    Compute the normalization factor 1/Z(x_i).
+    Parameters: word: string; a word x_i at some position i of a given sentence
+                prev_label: string; the label of the word at position i-1
+    Returns: float
+    '''
     # Exercise 2 a) ###################################################################
-    #pERCHé NON ABBIAMO ANCHE IL LABEL PRECEDENTE?
+    #pERCHé ABBIAMO ANCHE IL LABEL PRECEDENTE?
     #Abbiamo il prev_label perché cerchiamo le feature a 1 con tutti i label per la parola ed il
     #label precedente
     #Perché nell'esempio sulle slide non sono considerate le feature con i due label uno dietro all'altro?
     def cond_normalization_factor(self, word, prev_label):
-        z = np.float
+        z = np.float()
         #Uso la lista delle label per trovare tutte le feature a 1
         for x in self.labels:
             #Chiamo la funzione che mi ritorna l'array con le feature a 1
             q = self.get_active_features(word,x,prev_label)
+            print("q")
+            print(q)
+            #Mi viene ritornato il numero di non zero in quell'array
+            w = np.count_nonzero(q)
+            '''
             #In w vanno a finire gli indici di tutti gli elementi che non sono a 0
             #A me interessa unicamente sapere quanti sono gli elementi
             #perciò se è una lista, basta sapere quanto è lunga
             w = np.nonzero(q)
+            print("w2")
             print(w)
+            print(type(w))
             #r rappresenta il numero di feature attive per quella combinazione
-            r = w.count()
-            #Calcolo esponenziale on quell'indice andando poi a sommare continuamente
-            #con ciò calcolato precedentemente
-            z = np.exp(r) + z
+            if not np.empty(w[0]):
+                print("w diverso da 0")
+                w = list(w[0])
+                r = w.count()
+                print("r")
+                print(r)'''
+            #Conto il numero totale di feature attive per quella parola, ciclando sulla label
+            #Conto unicamente quante sono le feature attive perché mi interessa solo sapere quante
+            #sono, non quali sono
+            tot_active_feature = w + tot_active_feature
+        #Calcolo l'esponenziale con l'indice precedentemente calcolato
+        z = np.exp(tot_active_feature)
         return z
-        pass
     
     
     
-    
+    '''
+    Compute the conditional probability of a label given a word x_i.
+    Parameters: label: string; we are interested in the conditional probability of this label
+                word: string; a word x_i some position i of a given sentence
+                prev_label: string; the label of the word at position i-1
+    Returns: float
+    '''
     # Exercise 2 b) ###################################################################
     def conditional_probability(self, label, word, prev_label):
-        '''
-        Compute the conditional probability of a label given a word x_i.
-        Parameters: label: string; we are interested in the conditional probability of this label
-                    word: string; a word x_i some position i of a given sentence
-                    prev_label: string; the label of the word at position i-1
-        Returns: float
-        '''
-        
-        # your code here    
+        #E' uguale al calcolo di Z con la differenza che non itero su tutte le label ma solo
+        #su quella che mi viene passata
+        z = self.cond_normalization_factor(word,prev_label)
+        prob = np.float()
+        #Chiamo la funzione che mi ritorna l'array se la feature è a 1
+        q = self.get_active_features(word,label,prev_label)
+        #In w vanno a finire gli indici di tutti gli elementi che non sono a 0
+        #A me interessa unicamente sapere quanti sono gli elementi
+        #perciò se è una lista, basta sapere quanto è lunga
+        w = np.count_nonzero(q)
+        #Calcolo la probabilità per quella data label p(y|x), in questo caso p(label|word)
+        prob = (1/z)*np.exp(w)
+        return prob
     
     
-    
-    
+    '''
+    Compute the empirical feature count given a word, the actual label of this word and the label of the previous word.
+    Parameters: word: string; a word x_i some position i of a given sentence
+                label: string; the actual label of the given word
+                prev_label: string; the label of the word at position i-1
+    Returns: (numpy) array containing the empirical feature count
+    '''
     # Exercise 3 a) ###################################################################
     def empirical_feature_count(self, word, label, prev_label):
-        '''
-        Compute the empirical feature count given a word, the actual label of this word and the label of the previous word.
-        Parameters: word: string; a word x_i some position i of a given sentence
-                    label: string; the actual label of the given word
-                    prev_label: string; the label of the word at position i-1
-        Returns: (numpy) array containing the empirical feature count
-        '''
-        
-        # your code here
-        
-        pass
-    
-    
-    
-    
+        return self.get_active_features(word,label,prev_label)
+
+
+    '''
+    Compute the expected feature count given a word, the label of the previous word and the parameters of the current model
+    (see variable theta)
+    Parameters: word: string; a word x_i some position i of a given sentence
+                prev_label: string; the label of the word at position i-1
+    Returns: (numpy) array containing the expected feature count
+    '''
     # Exercise 3 b) ###################################################################
     def expected_feature_count(self, word, prev_label):
-        '''
-        Compute the expected feature count given a word, the label of the previous word and the parameters of the current model
-        (see variable theta)
-        Parameters: word: string; a word x_i some position i of a given sentence
-                    prev_label: string; the label of the word at position i-1
-        Returns: (numpy) array containing the expected feature count
-        '''
-        
-        # your code here
-        
-        pass
+        expected_feature_count = np.zeros(self.feature_indices.__len__())
+        for feature in self.feature_indices.keys():
+            for label in self.labels:
+                #Uso la funzione per il calcolo della probabilità
+                prob = self.conditional_probability(label,word,prev_label)
+                #Trovo tutte le feature attive per quella parola e label
+                act_feature = self.get_active_features(word,label,prev_label)
+                feat_index = self.feature_indices[feature]
+                expected_feature_count[feat_index] += prob*act_feature[feat_index]
+                '''
+                indexes = np.nonzero(act_feature)
+                #Dovrebbe tornare un array di tuple
+                (feature,n_feature) = self.feature_indices.get(word)'''
+        return expected_feature_count
+
     
     
-    
-    
+    '''
+    Do one learning step.
+    Parameters: word: string; a randomly selected word x_i at some position i of a given sentence
+                label: string; the actual label of the selected word
+                prev_label: string; the label of the word at position i-1
+                learning_rate: float
+    '''
     # Exercise 4 a) ###################################################################
     def parameter_update(self, word, label, prev_label, learning_rate):
-        '''
-        Do one learning step.
-        Parameters: word: string; a randomly selected word x_i at some position i of a given sentence
-                    label: string; the actual label of the selected word
-                    prev_label: string; the label of the word at position i-1
-                    learning_rate: float
-        '''
-        
-        # your code here
-        
-        pass
-    
-    
-    
-    
+        theta_zero = self.expected_feature_count(word,prev_label)
+        empirical = self.empirical_feature_count(word,label,prev_label)
+        gradient = np.subtract(empirical,theta_zero)
+        self.theta = theta_zero + learning_rate*gradient
+
+
+
+    '''
+    Implement the training procedure.
+    Parameters: number_iterations: int; number of parameter updates to do
+                learning_rate: float
+    '''
     # Exercise 4 b) ###################################################################
     def train(self, number_iterations, learning_rate=0.1):
-        '''
-        Implement the training procedure.
-        Parameters: number_iterations: int; number of parameter updates to do
-                    learning_rate: float
-        '''
-        
-        # your code here
-        
-        pass
-    
-    
-    
-    
+        for i in range(number_iterations):
+            for word in self.feature_indices.keys():
+                for label in self.labels:
+                    self.parameter_update(word,label,'''prev_label''',learning_rate)
+
+
+
+    '''
+    Predict the most probable label of the word referenced by 'word'
+    Parameters: word: string; a word x_i at some position i of a given sentence
+                prev_label: string; the label of the word at position i-1
+    Returns: string; most probable label
+    '''
     # Exercise 4 c) ###################################################################
     def predict(self, word, prev_label):
-        '''
-        Predict the most probable label of the word referenced by 'word'
-        Parameters: word: string; a word x_i at some position i of a given sentence
-                    prev_label: string; the label of the word at position i-1
-        Returns: string; most probable label
-        '''
-        
-        # your code here
-        
-        pass
+        index_max = np.argmax(self.theta)
+        label = str()
+        for x in self.feature_indices.keys():
+            [label for label,v in self.feature_indices[x].items() if v == index_max]
+        return label
 
-
+    '''
+    Predict the empirical feature count for a set of sentences
+    Parameters: sentences: list; a list of sentences; should be a sublist of the list returned by 'import_corpus'
+    Returns: (numpy) array containing the empirical feature count
+    '''
     # Exercise 5 a) ###################################################################
     def empirical_feature_count_batch(self, sentences):
-        '''
-        Predict the empirical feature count for a set of sentences
-        Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
-        Returns: (numpy) array containing the empirical feature count
-        '''
-
-        # your code here
+        for list in sentences:
+            pass
+            #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
+        pass
 
 
-
-
+    '''
+    Predict the expected feature count for a set of sentences
+    Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
+    Returns: (numpy) array containing the expected feature count
+    '''
     # Exercise 5 a) ###################################################################
     def expected_feature_count_batch(self, sentences):
-        '''
-        Predict the expected feature count for a set of sentences
-        Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
-        Returns: (numpy) array containing the expected feature count
-        '''
-
-        # your code here
-
-
-
-
-    # Exercise 5 b) ###################################################################
-    def train_batch(self, number_iterations, batch_size, learning_rate=0.1):
-        '''
-        Implement the training procedure which uses 'batch_size' sentences from to training corpus
-        to compute the gradient.
-        Parameters: number_iterations: int; number of parameter updates to do
-                    batch_size: int; number of sentences to use in each iteration
-                    learning_rate: float
-        '''
-
-        # your code here
-
+        for list in sentences:
+            pass
+            #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
         pass
 
 
 
+    '''
+    Implement the training procedure which uses 'batch_size' sentences from to training corpus
+    to compute the gradient.
+    Parameters: number_iterations: int; number of parameter updates to do
+                batch_size: int; number of sentences to use in each iteration
+                learning_rate: float
+    '''
+    # Exercise 5 b) ###################################################################
+    def train_batch(self, number_iterations, batch_size, learning_rate=0.1):
+        pass
 
+
+
+    '''
+    Compare the training methods 'train' and 'train_batch' in terms of convergence rate
+    Parameters: corpus: list of list; a corpus returned by 'import_corpus'
+    '''
     # Exercise 5 c) ###################################################################
     def evaluate(corpus):
-        '''
-        Compare the training methods 'train' and 'train_batch' in terms of convergence rate
-        Parameters: corpus: list of list; a corpus returned by 'import_corpus'
-        '''
-
-        # your code here
-
         pass
 
 
@@ -327,4 +374,5 @@ if __name__ == '__main__':
     corpus = import_corpus("corpus_pos.txt")
     prova = MaxEntModel()
     prova.initialize(corpus)
-
+    prova.get_active_features(word='formed',label='CC',prev_label='WRB')
+    prova.cond_normalization_factor('formed','CC')
