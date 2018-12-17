@@ -40,6 +40,7 @@ def import_corpus(path_to_file):
         sentence.append((parts[0].lower(), parts[-1]))
 
     f.close()
+    print(sentences)
     return sentences
 
 
@@ -321,23 +322,35 @@ class MaxEntModel(object):
     '''
     # Exercise 5 a) ###################################################################
     def empirical_feature_count_batch(self, sentences):
+        empirical_batch = np.array()
+        prev_label = None
         for list in sentences:
-            pass
+            for (word,label) in list:
+                if (word,label) == list[0]:
+                    prev_label = 'start'
+                np.append(empirical_batch,self.empirical_feature_count(word,label,prev_label))
+                prev_label = word
             #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
-        pass
+        return empirical_batch
 
 
     '''
     Predict the expected feature count for a set of sentences
-    Parameters: sentences: list; a list of sentences; should be a sublist of the list returnd by 'import_corpus'
+    Parameters: sentences: list; a list of sentences; should be a sublist of the list returned by 'import_corpus'
     Returns: (numpy) array containing the expected feature count
     '''
     # Exercise 5 a) ###################################################################
     def expected_feature_count_batch(self, sentences):
+        expected_batch = np.array()
+        prev_label = None
         for list in sentences:
-            pass
+            for (word,label) in list:
+                if (word,label) == list[0]:
+                    prev_label = 'start'
+                np.append(expected_batch,self.expected_feature_count(word,prev_label))
+                prev_label = word
             #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
-        pass
+        return expected_batch
 
 
 
