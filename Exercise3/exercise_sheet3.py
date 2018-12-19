@@ -7,7 +7,7 @@ import random
 from builtins import range
 
 import numpy as np
-
+import matplotlib.pyplot as plt
 '''
 DUBBI:
 Ha senso considerare la label 'start' come successiva?
@@ -17,6 +17,7 @@ Perchè comunque expectation count è uno per ogni feature, in questo caso un ar
 #Dove prendere il prev_label? nel 4 b)
 Es. 5b) dove prendo il prev_label quando non ho più il corpus?
 Probabilmente nella maggior parte degli esercizi in cui serve prev_label mi serve il corpus
+Problems with active_feature e initialization
 '''
 
 
@@ -83,52 +84,26 @@ class MaxEntModel(object):
                 self.labels.append(b)
         words = set(words)
         self.labels = set(self.labels)
-        #I create a dictionary with every feature
-        #The values of the second dictionary is the number of the feature
         self.feature_indices = {}
+        list_feature = []
         list_labels = list(self.labels)
-        prev_label = 0
-        k = 1
-        for j in list_labels:
-            for f in list_labels:
-                #I add start with every label next
-                if 'start' not in self.feature_indices:
-                    self.feature_indices['start'] = {j : k}
-                    k += 1
-                else:
-                    self.feature_indices['start'][j] = k
-                    k += 1
-                if j not in self.feature_indices:
-                    self.feature_indices[j] = {f : k}
-                    k += 1
-                else:
-                    self.feature_indices[j][f] = k
-                    k += 1
-        for i in words:
-            for j in list_labels:
-                #I add start
-                if 'start' not in self.feature_indices:
-                    self.feature_indices['start'] = {j : k}
-                    k += 1
-                else:
-                    self.feature_indices['start'][j] = k
-                    k += 1
-                #Every word with every label
-                if i not in self.feature_indices:
-                    self.feature_indices[i] = {j : k}
-                    k += 1
-                else:
-                    self.feature_indices[i][j] = k
-                    k += 1
-                    #I add also the word with 'start'
-                    self.feature_indices[i]['start'] = k
-                    k += 1
-        n_feature = 0
-        for i in self.feature_indices:
-            n_feature += (list(self.feature_indices[i].values())).__len__()
+        for label1 in list_labels:
+            if ('start',label1) not in list_feature:
+                list_feature.append(('start',label1))
+            for label2 in list_labels:
+                if (label1,label2) not in list_feature:
+                    list_feature.append((label1,label2))
+        for word in words:
+            if (word,'start') not in list_feature:
+                list_feature.append((word,'start'))
+            for label in list_labels:
+                if (word,label) not in list_feature:
+                    list_feature.append((word,label))
+        for i in range(list_feature.__len__()):
+            self.feature_indices[list_feature[i]] = i
+        n_feature = self.feature_indices.__len__()
         #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
-        return True
     
 
     '''
@@ -140,30 +115,23 @@ class MaxEntModel(object):
     '''
     # Exercise 1 b) ###################################################################
     def get_active_features(self, word, label, prev_label):
-        y = 0
-        w = 0
+        index_feature1 = 0
+        index_feature2 = 0
         #The actives feature can be 2 for every word:
         #1.For the word with that label
         #2.The prev_label and the follow
         #I search the word inside the dict of feature
-        if word in self.feature_indices:
-            x = self.feature_indices.get(word)
-            #I search for that word the label and I take the number of the feature
-            if label in self.feature_indices[word]:
-                y = x.get(label)
-        if prev_label in self.feature_indices:
-            #I search the prev_label inside the dict of feature
-            Z = self.feature_indices.get(prev_label)
-            #I search the label with that prev_label and I take the number of the feature
-            if label in self.feature_indices[prev_label]:
-                w = Z.get(label)
+        if (word,label) in self.feature_indices.keys():
+            index_feature1 = self.feature_indices.get((word,label))
+        if (prev_label,label) in self.feature_indices.keys():
+            index_feature2 = self.feature_indices.get((prev_label,label))
         #I create an array with all zeros with the same shape of theta
         active_feature = np.zeros(self.theta.__len__())
         #I trasform the two feature active features to 1 inside the vector
-        if y != 0:
-            active_feature[y] = 1
-        if w != 0:
-            active_feature[w] = 1
+        if index_feature1 != 0:
+            active_feature[index_feature1] = 1
+        if index_feature2 != 0:
+            active_feature[index_feature2] = 1
         return active_feature
 
     ''' 
@@ -230,11 +198,11 @@ class MaxEntModel(object):
     # Exercise 3 b) ###################################################################
     def expected_feature_count(self, word, prev_label):
         expected_feature = np.zeros(self.feature_indices.__len__())
-        for feature in self.feature_indices.keys():
+        for (x,y) in self.feature_indices.keys():
             for label in self.labels:
                 prob = self.conditional_probability(label,word,prev_label)
                 act_feature = self.get_active_features(word,label,prev_label)
-                feat_index = self.feature_indices[feature]
+                feat_index = self.feature_indices.get((x,y))
                 expected_feature[feat_index] += prob*act_feature[feat_index]
         return expected_feature
 
@@ -285,8 +253,9 @@ class MaxEntModel(object):
     def predict(self, word, prev_label):
         index_max = np.argmax(self.theta)
         label = str()
-        for x in self.feature_indices.keys():
-            [label for label,v in self.feature_indices[x].items() if v == index_max]
+        for (x,y) in self.feature_indices.keys():
+            if self.feature_indices.get((x,y)) == index_max:
+                label = y
         return label
 
     '''
@@ -359,20 +328,136 @@ class MaxEntModel(object):
     '''
     # Exercise 5 c) ###################################################################
     def evaluate(corpus):
+        testSetLength = len(corpus) // 10
+        testSet = random.sample(corpus, testSetLength)
+
+        trainingSet = corpus.copy()
+        for elem in testSet:
+            trainingSet.remove(elem)
+        '''
         corpus = np.random.rand(100, 5)
         indices = np.random.permutation(corpus.shape[0])
         training_idx, test_idx = indices[:80], indices[80:]
         training, test = corpus[training_idx,:], corpus[test_idx,:]
+        '''
         A = MaxEntModel()
         B = MaxEntModel()
-        A.initialize(training)
-        B.initialize(training)
-        A.train(1)
-        B.train_batch(1,1)
+        A.initialize(trainingSet)
+        B.initialize(trainingSet)
+        A.train(100, 0.2)
+        B.train_batch(100, 1, 0.2)
+
+        correctA = 0
+        correctB = 0
+        totalTestWords = 0
+        for sentence in testSet:
+            totalTestWords += len(sentence)
+            for i in range(len(sentence)):
+                word = sentence[i][0]
+                label = sentence[i][1]
+                prevLabel = sentence[i-1][1] if i > 0 else "start"
+                predictedA = A.predict(word, prevLabel)
+                predictedB = B.predict(word, prevLabel)
+                if predictedA == label:
+                    correctA += 1
+                if predictedB == label:
+                    correctB += 1
+
+        accuracyA = correctA / totalTestWords
+        accuracyB = correctB / totalTestWords
+        accuracies = [accuracyA, accuracyB]
+        wordNumbers = [A.trainWordCount, B.trainBatchWordCount]
+
+        plt.plot(wordNumbers, accuracies, color='red')
+        plt.scatter([wordNumbers[0]], [accuracies[0]], label="Model A", color="green")
+        plt.scatter([wordNumbers[1]], [accuracies[1]], label="Model B", color="blue")
+        xMax = max(wordNumbers) + 25
+        xMin = min(wordNumbers) - 25
+        plt.xlim([xMin,xMax])
+        plt.ylim([0,1.0])
+        plt.xlabel("Number of training words")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        plt.show()
+        pp = PdfPages('plot.pdf')
+        pp.savefig()
+        pp.close()
+
+'''
+    testSetLength = len(corpus) // 10
+    testSet = random.sample(corpus, testSetLength)
+
+    trainingSet = corpus.copy()
+    for elem in testSet:
+        trainingSet.remove(elem)
+
+    print("calculated test length = ", testSetLength)
+    print("corpus length = ", len(corpus))
+    print("test set legth = ", len(testSet))
+    print("training set length = ", len(trainingSet))
+
+    A = MaxEntModel()
+    A.initialize(trainingSet)
+
+    print(trainingSet)
+
+    B = MaxEntModel()
+    B.initialize(trainingSet)
+
+    #exit()
+
+    A.train(100, 0.2)
+    B.train_batch(100, 1, 0.2)
+
+    correctA = 0
+    correctB = 0
+    totalTestWords = 0
+
+    for sentence in testSet:
+        totalTestWords += len(sentence)
+        for i in range(len(sentence)):
+            word = sentence[i][0]
+            label = sentence[i][1]
+            prevLabel = sentence[i-1][1] if i > 0 else "start"
+            predictedA = A.predict(word, prevLabel)
+            predictedB = B.predict(word, prevLabel)
+            if predictedA == label:
+                correctA += 1
+            if predictedB == label:
+                correctB += 1
+
+    accuracyA = correctA / totalTestWords
+    accuracyB = correctB / totalTestWords
+
+    print("total test words = ", totalTestWords)
+    print("correct A = ", correctA)
+    print("correct B = ", correctB)
+    print("accuracy A = ", accuracyA)
+    print("accuracy B = ", accuracyB)
+    print("WA = ", A.trainWordCount)
+    print("WB = ", B.trainBatchWordCount)
+
+    accuracies = [accuracyA, accuracyB]
+    wordNumbers = [A.trainWordCount, B.trainBatchWordCount]
+
+    plt.plot(wordNumbers, accuracies, color='red')
+    plt.scatter([wordNumbers[0]], [accuracies[0]], label="Model A", color="green")
+    plt.scatter([wordNumbers[1]], [accuracies[1]], label="Model B", color="blue")
+    xMax = max(wordNumbers) + 25
+    xMin = min(wordNumbers) - 25
+    plt.xlim([xMin,xMax])
+    plt.ylim([0,1.0])
+    plt.xlabel("Number of training words")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.show()
+    pp = PdfPages('plot.pdf')
+    pp.savefig()
+    pp.close()
         pass
 
 
-
+'''
 
 
 
@@ -380,8 +465,22 @@ class MaxEntModel(object):
 
     
 if __name__ == '__main__':
-    corpus = import_corpus("corpus_pos.txt")
-    prova = MaxEntModel()
-    prova.initialize(corpus)
-    prova.get_active_features(word='formed',label='CC',prev_label='WRB')
-    prova.cond_normalization_factor('formed','CC')
+    #corpus = import_corpus("corpus_pos.txt")
+    corpus = import_corpus("prova.txt")
+    model = MaxEntModel()
+    model.initialize(corpus)
+    #'''
+    model.get_active_features(word='formed',label='CC',prev_label='WRB')
+    model.cond_normalization_factor('formed','CC')
+    #'''
+    model.train(1)
+    most_prob_label = {}
+    prev_label = None
+    for sentence in model.corpus:
+            for (word,label) in sentence:
+                if (word,label) == sentence[0]:
+                    prev_label = 'start'
+                prob_label = model.predict(word,prev_label)
+                most_prob_label[word] = prob_label
+                prev_label = label
+    model.evaluate()
