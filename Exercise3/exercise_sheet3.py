@@ -47,7 +47,6 @@ def import_corpus(path_to_file):
         sentence.append((parts[0].lower(), parts[-1]))
 
     f.close()
-    #print(sentences)
     return sentences
 
 
@@ -105,20 +104,6 @@ class MaxEntModel(object):
                 else:
                     self.feature_indices[j][f] = k
                     k += 1
-                '''
-                #If I am in the first posìtion I'll start from the next cycle
-                if j == list_labels[0]:
-                    #I save the last label
-                    prev_label = j
-                else:
-                    #Every label with the next
-                    if prev_label not in self.feature_indices:
-                        self.feature_indices[prev_label] = {j : k}
-                        k += 1
-                    else:
-                        self.feature_indices[prev_label][j] = k
-                        k += 1
-                    prev_label = j'''
         for i in words:
             for j in list_labels:
                 #I add start
@@ -138,12 +123,9 @@ class MaxEntModel(object):
                     #I add also the word with 'start'
                     self.feature_indices[i]['start'] = k
                     k += 1
-        print(k)
         n_feature = 0
-        print(self.feature_indices.values())
         for i in self.feature_indices:
             n_feature += (list(self.feature_indices[i].values())).__len__()
-        print(n_feature)
         #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
         return True
@@ -157,7 +139,6 @@ class MaxEntModel(object):
     Returns: (numpy) array containing only zeros and ones.
     '''
     # Exercise 1 b) ###################################################################
-    #Ma lo start lo dobbiamo considerare? Si
     def get_active_features(self, word, label, prev_label):
         y = 0
         w = 0
@@ -203,28 +184,8 @@ class MaxEntModel(object):
         for x in self.labels:
             #Chiamo la funzione che mi ritorna l'array con le feature a 1
             q = self.get_active_features(word,x,prev_label)
-            #Mi viene ritornato il numero di non zero in quell'array
             w = np.count_nonzero(q)
-            '''
-            #In w vanno a finire gli indici di tutti gli elementi che non sono a 0
-            #A me interessa unicamente sapere quanti sono gli elementi
-            #perciò se è una lista, basta sapere quanto è lunga
-            w = np.nonzero(q)
-            print("w2")
-            print(w)
-            print(type(w))
-            #r rappresenta il numero di feature attive per quella combinazione
-            if not np.empty(w[0]):
-                print("w diverso da 0")
-                w = list(w[0])
-                r = w.count()
-                print("r")
-                print(r)'''
-            #Conto il numero totale di feature attive per quella parola, ciclando sulla label
-            #Conto unicamente quante sono le feature attive perché mi interessa solo sapere quante
-            #sono, non quali sono
             tot_active_feature += w
-        #Calcolo l'esponenziale con l'indice precedentemente calcolato
         Z = np.exp(tot_active_feature)
         return Z
     
@@ -239,17 +200,10 @@ class MaxEntModel(object):
     '''
     # Exercise 2 b) ###################################################################
     def conditional_probability(self, label, word, prev_label):
-        #E' uguale al calcolo di Z con la differenza che non itero su tutte le label ma solo
-        #su quella che mi viene passata
         Z = self.cond_normalization_factor(word,prev_label)
         prob = np.float()
-        #Chiamo la funzione che mi ritorna l'array se la feature è a 1
         q = self.get_active_features(word,label,prev_label)
-        #In w vanno a finire gli indici di tutti gli elementi che non sono a 0
-        #A me interessa unicamente sapere quanti sono gli elementi
-        #perciò se è una lista, basta sapere quanto è lunga
         w = np.count_nonzero(q)
-        #Calcolo la probabilità per quella data label p(y|x), in questo caso p(label|word)
         prob = (1/Z)*np.exp(w)
         return prob
     
@@ -278,16 +232,10 @@ class MaxEntModel(object):
         expected_feature = np.zeros(self.feature_indices.__len__())
         for feature in self.feature_indices.keys():
             for label in self.labels:
-                #Uso la funzione per il calcolo della probabilità
                 prob = self.conditional_probability(label,word,prev_label)
-                #Trovo tutte le feature attive per quella parola e label
                 act_feature = self.get_active_features(word,label,prev_label)
                 feat_index = self.feature_indices[feature]
                 expected_feature[feat_index] += prob*act_feature[feat_index]
-                '''
-                indexes = np.nonzero(act_feature)
-                #Dovrebbe tornare un array di tuple
-                (feature,n_feature) = self.feature_indices.get(word)'''
         return expected_feature
 
     
@@ -432,8 +380,7 @@ class MaxEntModel(object):
 
     
 if __name__ == '__main__':
-    #corpus = import_corpus("corpus_pos.txt")
-    corpus = import_corpus("Prova.txt")
+    corpus = import_corpus("corpus_pos.txt")
     prova = MaxEntModel()
     prova.initialize(corpus)
     prova.get_active_features(word='formed',label='CC',prev_label='WRB')
