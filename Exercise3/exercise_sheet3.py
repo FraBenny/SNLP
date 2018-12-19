@@ -3,6 +3,9 @@
 ################################################################################
 import math
 import sys
+import random
+from builtins import range
+
 import numpy as np
 
 '''
@@ -12,6 +15,8 @@ Vanno considerate le feature con due label una dopo l'altra nell'esercizio 2a) e
 Probabilmente devo trattare word, come possa essere la label e non per forza la parola
 Perchè comunque expectation count è uno per ogni feature, in questo caso un array per ogni parola
 #Dove prendere il prev_label? nel 4 b)
+Es. 5b) dove prendo il prev_label quando non ho più il corpus?
+Probabilmente nella maggior parte degli esercizi in cui serve prev_label mi serve il corpus
 '''
 
 
@@ -21,6 +26,8 @@ Parameters: path_to_file: string; path to the file containing the corpus
 Returns: list of list; the first layer list contains the sentences of the corpus;
     the second layer list contains tuples (token,label) representing a labelled sentence
 '''
+
+
 def import_corpus(path_to_file):
     sentences = []
     sentence = []
@@ -44,8 +51,6 @@ def import_corpus(path_to_file):
     return sentences
 
 
-
-
 class MaxEntModel(object):
     # training corpus
     corpus = None
@@ -61,10 +66,10 @@ class MaxEntModel(object):
     # set containing a list of possible lables
     # has to be set by the method 'initialize'
     labels = None
-    
-    
+
+
     # Exercise 1 a) ###################################################################
-    #Devo aggiungere start
+#   Devo aggiungere start
     def initialize(self, corpus):
         '''
         Initialize the maximun entropy model, i.e., build the set of all features, the set of all labels
@@ -324,13 +329,13 @@ class MaxEntModel(object):
     def empirical_feature_count_batch(self, sentences):
         empirical_batch = np.array()
         prev_label = None
-        for list in sentences:
-            for (word,label) in list:
-                if (word,label) == list[0]:
+        for List in sentences:
+            for (word, label) in List:
+                if (word, label) == List[0]:
                     prev_label = 'start'
                 np.append(empirical_batch,self.empirical_feature_count(word,label,prev_label))
                 prev_label = word
-            #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
+            #Chiamare la funzione che calcolo l'empirical, serve word, label e prev_label
         return empirical_batch
 
 
@@ -343,11 +348,11 @@ class MaxEntModel(object):
     def expected_feature_count_batch(self, sentences):
         expected_batch = np.array()
         prev_label = None
-        for list in sentences:
-            for (word,label) in list:
-                if (word,label) == list[0]:
+        for List in sentences:
+            for (word,label) in List:
+                if (word,label) == List[0]:
                     prev_label = 'start'
-                np.append(expected_batch,self.expected_feature_count(word,prev_label))
+                np.append(expected_batch,self.expected_feature_count(word, prev_label))
                 prev_label = word
             #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
         return expected_batch
@@ -363,7 +368,16 @@ class MaxEntModel(object):
     '''
     # Exercise 5 b) ###################################################################
     def train_batch(self, number_iterations, batch_size, learning_rate=0.1):
-        pass
+        #With the batch_size you have to select a number of sentences for each iteration from the corpus
+        new_corpus = []
+        for i in range(batch_size):
+            y = np.random.choice(self.corpus)
+            if y not in new_corpus:
+                new_corpus.append(y)
+        for i in range(number_iterations):
+            for word in self.feature_indices.keys():
+                for label in self.labels:
+                    self.parameter_update(word,label,prev_label,learning_rate)
 
 
 
@@ -373,6 +387,16 @@ class MaxEntModel(object):
     '''
     # Exercise 5 c) ###################################################################
     def evaluate(corpus):
+        corpus = np.random.rand(100, 5)
+        indices = np.random.permutation(corpus.shape[0])
+        training_idx, test_idx = indices[:80], indices[80:]
+        training, test = corpus[training_idx,:], corpus[test_idx,:]
+        A = MaxEntModel()
+        B = MaxEntModel()
+        A.initialize(training)
+        B.initialize(training)
+        A.train(1)
+        B.train_batch(1,1)
         pass
 
 
