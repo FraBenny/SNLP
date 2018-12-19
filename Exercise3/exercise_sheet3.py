@@ -47,7 +47,7 @@ def import_corpus(path_to_file):
         sentence.append((parts[0].lower(), parts[-1]))
 
     f.close()
-    print(sentences)
+    #print(sentences)
     return sentences
 
 
@@ -69,23 +69,23 @@ class MaxEntModel(object):
 
 
     # Exercise 1 a) ###################################################################
-#   Devo aggiungere start
+    '''
+    Initialize the maximun entropy model, i.e., build the set of all features, the set of all labels
+    and create an initial array 'theta' for the parameters of the model.
+    Parameters: corpus: list of list representing the corpus, returned by the function 'import_corpus'
+    '''
     def initialize(self, corpus):
-        '''
-        Initialize the maximun entropy model, i.e., build the set of all features, the set of all labels
-        and create an initial array 'theta' for the parameters of the model.
-        Parameters: corpus: list of list representing the corpus, returned by the function 'import_corpus'
-        '''
         self.corpus = corpus
         words = []
         self.labels = []
-        for f in corpus:
-            for (a,b) in f:
+        for sentence in corpus:
+            for (a,b) in sentence:
                 words.append(a)
                 self.labels.append(b)
         words = set(words)
         self.labels = set(self.labels)
-        self.labels.add('start')
+        '''#Start dovrebbe essere solo all'inizio della frase
+        self.labels.add('start')'''
         #I create a dictionary with every feature
         #I've to create a dictionary of dictionary
         #otherwise every word has associated only one label
@@ -94,41 +94,70 @@ class MaxEntModel(object):
         #but we have to understand where is 1 or 0
         self.feature_indices = {}
         list_labels = list(self.labels)
-        last_label = 0
+        prev_label = 0
         k = 1
+        #print(words.__len__())
+        #print(list_labels.__len__())
+        for j in list_labels:
+            #Every label with itself
+            self.feature_indices[j] = {j : k}
+            #I add start with every label next
+            if 'start' not in self.feature_indices:
+                self.feature_indices['start'] = {j : k}
+                k += 1
+            else:
+                self.feature_indices['start'][j] = k
+                k += 1
+            #If I am in the first postìtion I'll start from the next cycle
+            if j == list_labels[0]:
+                #I save the last label
+                prev_label = j
+            else:
+                #Every label with the next
+                if prev_label not in self.feature_indices:
+                    self.feature_indices[prev_label] = {j : k}
+                    k += 1
+                else:
+                    self.feature_indices[prev_label][j] = k
+                    k += 1
+                prev_label = j
         for i in words:
             for j in list_labels:
+                #I add start
+                if 'start' not in self.feature_indices:
+                    self.feature_indices['start'] = {j : k}
+                    k += 1
+                else:
+                    self.feature_indices['start'][j] = k
+                    k += 1
                 #Every word with every label
-                self.feature_indices[i] = {j : k}
-                k = k + 1
-                #Every label with itself
-                self.feature_indices[j] = {j : k}
-                k = k + 1
-                #Every label with the next
-                if j != list_labels[0]:
-                    if last_label != j:
-                        self.feature_indices[last_label] = {j : k}
-                        k = k + 1
-                #I save the last label
-                last_label = j
-        #print(self.feature_indices)
+                if i not in self.feature_indices:
+                    self.feature_indices[i] = {j : k}
+                    k += 1
+                else:
+                    self.feature_indices[i][j] = k
+                    k += 1
+                    #I add also the word with 'start'
+                    self.feature_indices[i]['start'] = k
+                    k += 1
+        print(k)
         n_feature = 0
-        for i in self.feature_indices.keys():
-            n_feature = (list(self.feature_indices[i].keys())).__len__() + n_feature
-            #print(n_feature)
-        #print(n_feature)
+        print(self.feature_indices)
+        for i in self.feature_indices:
+            n_feature += (list(self.feature_indices[i].values())).__len__()
+        print(n_feature)
+        #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
         return True
     
 
-    
-        '''
-        Compute the vector of active features.
-        Parameters: word: string; a word at some position i of a given sentence
-                    label: string; a label assigned to the given word
-                    prev_label: string; the label of the word at position i-1
-        Returns: (numpy) array containing only zeros and ones.
-        '''
+    '''
+    Compute the vector of active features.
+    Parameters: word: string; a word at some position i of a given sentence
+                label: string; a label assigned to the given word
+                prev_label: string; the label of the word at position i-1
+    Returns: (numpy) array containing only zeros and ones.
+    '''
     # Exercise 1 b) ###################################################################
     #Ma lo start lo dobbiamo considerare? Si
     def get_active_features(self, word, label, prev_label):
@@ -145,28 +174,28 @@ class MaxEntModel(object):
                 y = x.get(label)
         if prev_label in self.feature_indices:#Va bene così o devo scrivere self.feature_indices.keys()
             #I search the prev_label inside the dict of feature
-            z = self.feature_indices.get(prev_label)
+            Z = self.feature_indices.get(prev_label)
             #I search the label with that prev_label and I take the number of the feature
             if label in self.feature_indices[prev_label]:#Va bene così o devo scrivere self.feature_indices[prev_label].keys()
-                w = z.get(label)
+                w = Z.get(label)
         #I create an array with all zeros with the same shape of theta
-        f = np.zeros(self.theta.__len__())
-        print("f1")
-        print(f)
+        active_feature = np.zeros(self.theta.__len__())
+        #print("active_feature1")
+        #print(active_feature)
         #print("theta")
         #print(self.theta.__len__())
-        #I trasform the two feature active features to 1
-        print("y")
-        print(y)
-        print("w")
-        print(w)
+        #I trasform the two feature active features to 1 inside the vector
+        #print("y")
+        #print(y)
+        #print("w")
+        #print(w)
         if y != 0:
-            f[y] = 1
+            active_feature[y] = 1
         if w != 0:
-            f[w] = 1
-        print("f2")
-        print(f)
-        return f
+            active_feature[w] = 1
+        #print("active_featuref2")
+        #print(active_feature)
+        return active_feature
 
     ''' 
     Compute the normalization factor 1/Z(x_i).
@@ -180,7 +209,8 @@ class MaxEntModel(object):
     #label precedente
     #Perché nell'esempio sulle slide non sono considerate le feature con i due label uno dietro all'altro?
     def cond_normalization_factor(self, word, prev_label):
-        z = np.float()
+        Z = np.float()
+        tot_active_feature = np.float()
         #Uso la lista delle label per trovare tutte le feature a 1
         for x in self.labels:
             #Chiamo la funzione che mi ritorna l'array con le feature a 1
@@ -207,10 +237,10 @@ class MaxEntModel(object):
             #Conto il numero totale di feature attive per quella parola, ciclando sulla label
             #Conto unicamente quante sono le feature attive perché mi interessa solo sapere quante
             #sono, non quali sono
-            tot_active_feature = w + tot_active_feature
+            tot_active_feature += w
         #Calcolo l'esponenziale con l'indice precedentemente calcolato
-        z = np.exp(tot_active_feature)
-        return z
+        Z = np.exp(tot_active_feature)
+        return Z
     
     
     
@@ -225,7 +255,7 @@ class MaxEntModel(object):
     def conditional_probability(self, label, word, prev_label):
         #E' uguale al calcolo di Z con la differenza che non itero su tutte le label ma solo
         #su quella che mi viene passata
-        z = self.cond_normalization_factor(word,prev_label)
+        Z = self.cond_normalization_factor(word,prev_label)
         prob = np.float()
         #Chiamo la funzione che mi ritorna l'array se la feature è a 1
         q = self.get_active_features(word,label,prev_label)
@@ -234,7 +264,7 @@ class MaxEntModel(object):
         #perciò se è una lista, basta sapere quanto è lunga
         w = np.count_nonzero(q)
         #Calcolo la probabilità per quella data label p(y|x), in questo caso p(label|word)
-        prob = (1/z)*np.exp(w)
+        prob = (1/Z)*np.exp(w)
         return prob
     
     
@@ -259,7 +289,7 @@ class MaxEntModel(object):
     '''
     # Exercise 3 b) ###################################################################
     def expected_feature_count(self, word, prev_label):
-        expected_feature_count = np.zeros(self.feature_indices.__len__())
+        expected_feature = np.zeros(self.feature_indices.__len__())
         for feature in self.feature_indices.keys():
             for label in self.labels:
                 #Uso la funzione per il calcolo della probabilità
@@ -267,12 +297,12 @@ class MaxEntModel(object):
                 #Trovo tutte le feature attive per quella parola e label
                 act_feature = self.get_active_features(word,label,prev_label)
                 feat_index = self.feature_indices[feature]
-                expected_feature_count[feat_index] += prob*act_feature[feat_index]
+                expected_feature[feat_index] += prob*act_feature[feat_index]
                 '''
                 indexes = np.nonzero(act_feature)
                 #Dovrebbe tornare un array di tuple
                 (feature,n_feature) = self.feature_indices.get(word)'''
-        return expected_feature_count
+        return expected_feature
 
     
     
@@ -299,11 +329,16 @@ class MaxEntModel(object):
     '''
     # Exercise 4 b) ###################################################################
     def train(self, number_iterations, learning_rate=0.1):
+        #I execute number_iterations time the train
         for i in range(number_iterations):
-            for word in self.feature_indices.keys():
-                for label in self.labels:
-                    self.parameter_update(word,label,'''prev_label''',learning_rate)
-
+            for sentence in self.corpus:
+                for (word,label) in sentence:
+                    if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                    else:
+                        prev_label = label
+                    #I call parameter_update for updating parameters
+                    self.parameter_update(word,label,prev_label,learning_rate)
 
 
     '''
@@ -329,9 +364,9 @@ class MaxEntModel(object):
     def empirical_feature_count_batch(self, sentences):
         empirical_batch = np.array()
         prev_label = None
-        for List in sentences:
-            for (word, label) in List:
-                if (word, label) == List[0]:
+        for sentence in sentences:
+            for (word, label) in sentence:
+                if (word, label) == sentence[0]:
                     prev_label = 'start'
                 np.append(empirical_batch,self.empirical_feature_count(word,label,prev_label))
                 prev_label = word
@@ -348,9 +383,9 @@ class MaxEntModel(object):
     def expected_feature_count_batch(self, sentences):
         expected_batch = np.array()
         prev_label = None
-        for List in sentences:
-            for (word,label) in List:
-                if (word,label) == List[0]:
+        for sentence in sentences:
+            for (word,label) in sentence:
+                if (word,label) == sentence[0]:
                     prev_label = 'start'
                 np.append(expected_batch,self.expected_feature_count(word, prev_label))
                 prev_label = word
@@ -368,18 +403,23 @@ class MaxEntModel(object):
     '''
     # Exercise 5 b) ###################################################################
     def train_batch(self, number_iterations, batch_size, learning_rate=0.1):
-        #With the batch_size you have to select a number of sentences for each iteration from the corpus
+        #I create a new list new_corpus for containing the sentences selected randomly from the corpus
+        # based on the number batch_size
         new_corpus = []
         for i in range(batch_size):
             y = np.random.choice(self.corpus)
             if y not in new_corpus:
                 new_corpus.append(y)
+        #I execute number_iterations times the train
         for i in range(number_iterations):
-            for word in self.feature_indices.keys():
-                for label in self.labels:
+            for sentence in new_corpus:
+                for (word,label) in sentence:
+                    if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                    else:
+                        prev_label = label
+                    #I call parameter_update for updating parameters
                     self.parameter_update(word,label,prev_label,learning_rate)
-
-
 
     '''
     Compare the training methods 'train' and 'train_batch' in terms of convergence rate
@@ -408,7 +448,8 @@ class MaxEntModel(object):
 
     
 if __name__ == '__main__':
-    corpus = import_corpus("corpus_pos.txt")
+    #corpus = import_corpus("corpus_pos.txt")
+    corpus = import_corpus("Prova.txt")
     prova = MaxEntModel()
     prova.initialize(corpus)
     prova.get_active_features(word='formed',label='CC',prev_label='WRB')
