@@ -84,43 +84,41 @@ class MaxEntModel(object):
                 self.labels.append(b)
         words = set(words)
         self.labels = set(self.labels)
-        '''#Start dovrebbe essere solo all'inizio della frase
-        self.labels.add('start')'''
         #I create a dictionary with every feature
-        #I've to create a dictionary of dictionary
-        #otherwise every word has associated only one label
         #The values of the second dictionary is the number of the feature
-        #In the dictionary we have all possible feature
-        #but we have to understand where is 1 or 0
         self.feature_indices = {}
         list_labels = list(self.labels)
         prev_label = 0
         k = 1
-        #print(words.__len__())
-        #print(list_labels.__len__())
         for j in list_labels:
-            #Every label with itself
-            self.feature_indices[j] = {j : k}
-            #I add start with every label next
-            if 'start' not in self.feature_indices:
-                self.feature_indices['start'] = {j : k}
-                k += 1
-            else:
-                self.feature_indices['start'][j] = k
-                k += 1
-            #If I am in the first postìtion I'll start from the next cycle
-            if j == list_labels[0]:
-                #I save the last label
-                prev_label = j
-            else:
-                #Every label with the next
-                if prev_label not in self.feature_indices:
-                    self.feature_indices[prev_label] = {j : k}
+            for f in list_labels:
+                #I add start with every label next
+                if 'start' not in self.feature_indices:
+                    self.feature_indices['start'] = {j : k}
                     k += 1
                 else:
-                    self.feature_indices[prev_label][j] = k
+                    self.feature_indices['start'][j] = k
                     k += 1
-                prev_label = j
+                if j not in self.feature_indices:
+                    self.feature_indices[j] = {f : k}
+                    k += 1
+                else:
+                    self.feature_indices[j][f] = k
+                    k += 1
+                '''
+                #If I am in the first posìtion I'll start from the next cycle
+                if j == list_labels[0]:
+                    #I save the last label
+                    prev_label = j
+                else:
+                    #Every label with the next
+                    if prev_label not in self.feature_indices:
+                        self.feature_indices[prev_label] = {j : k}
+                        k += 1
+                    else:
+                        self.feature_indices[prev_label][j] = k
+                        k += 1
+                    prev_label = j'''
         for i in words:
             for j in list_labels:
                 #I add start
@@ -142,7 +140,7 @@ class MaxEntModel(object):
                     k += 1
         print(k)
         n_feature = 0
-        print(self.feature_indices)
+        print(self.feature_indices.values())
         for i in self.feature_indices:
             n_feature += (list(self.feature_indices[i].values())).__len__()
         print(n_feature)
@@ -167,34 +165,24 @@ class MaxEntModel(object):
         #1.For the word with that label
         #2.The prev_label and the follow
         #I search the word inside the dict of feature
-        if word in self.feature_indices:#Va bene così o devo scrivere self.feature_indices.keys()
+        if word in self.feature_indices:
             x = self.feature_indices.get(word)
             #I search for that word the label and I take the number of the feature
-            if label in self.feature_indices[word]:#Va bene così o devo scrivere self.feature_indices[word].keys()
+            if label in self.feature_indices[word]:
                 y = x.get(label)
-        if prev_label in self.feature_indices:#Va bene così o devo scrivere self.feature_indices.keys()
+        if prev_label in self.feature_indices:
             #I search the prev_label inside the dict of feature
             Z = self.feature_indices.get(prev_label)
             #I search the label with that prev_label and I take the number of the feature
-            if label in self.feature_indices[prev_label]:#Va bene così o devo scrivere self.feature_indices[prev_label].keys()
+            if label in self.feature_indices[prev_label]:
                 w = Z.get(label)
         #I create an array with all zeros with the same shape of theta
         active_feature = np.zeros(self.theta.__len__())
-        #print("active_feature1")
-        #print(active_feature)
-        #print("theta")
-        #print(self.theta.__len__())
         #I trasform the two feature active features to 1 inside the vector
-        #print("y")
-        #print(y)
-        #print("w")
-        #print(w)
         if y != 0:
             active_feature[y] = 1
         if w != 0:
             active_feature[w] = 1
-        #print("active_featuref2")
-        #print(active_feature)
         return active_feature
 
     ''' 
@@ -215,8 +203,6 @@ class MaxEntModel(object):
         for x in self.labels:
             #Chiamo la funzione che mi ritorna l'array con le feature a 1
             q = self.get_active_features(word,x,prev_label)
-            print("q")
-            print(q)
             #Mi viene ritornato il numero di non zero in quell'array
             w = np.count_nonzero(q)
             '''
@@ -370,7 +356,6 @@ class MaxEntModel(object):
                     prev_label = 'start'
                 np.append(empirical_batch,self.empirical_feature_count(word,label,prev_label))
                 prev_label = word
-            #Chiamare la funzione che calcolo l'empirical, serve word, label e prev_label
         return empirical_batch
 
 
@@ -389,7 +374,6 @@ class MaxEntModel(object):
                     prev_label = 'start'
                 np.append(expected_batch,self.expected_feature_count(word, prev_label))
                 prev_label = word
-            #Chiamare la funzione che calcolo l'expected, serve word, label e prev_label
         return expected_batch
 
 
