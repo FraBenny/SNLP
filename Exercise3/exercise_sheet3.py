@@ -8,18 +8,6 @@ from builtins import range
 
 import numpy as np
 import matplotlib.pyplot as plt
-'''
-DUBBI:
-Ha senso considerare la label 'start' come successiva?
-Vanno considerate le feature con due label una dopo l'altra nell'esercizio 2a) e 2b)?
-Probabilmente devo trattare word, come possa essere la label e non per forza la parola
-Perchè comunque expectation count è uno per ogni feature, in questo caso un array per ogni parola
-#Dove prendere il prev_label? nel 4 b)
-Es. 5b) dove prendo il prev_label quando non ho più il corpus?
-Probabilmente nella maggior parte degli esercizi in cui serve prev_label mi serve il corpus
-Problems with active_feature e initialization
-'''
-
 
 '''
 This function can be used for importing the corpus.
@@ -328,136 +316,18 @@ class MaxEntModel(object):
     '''
     # Exercise 5 c) ###################################################################
     def evaluate(corpus):
-        testSetLength = len(corpus) // 10
+        testSetLength = corpus
         testSet = random.sample(corpus, testSetLength)
 
         trainingSet = corpus.copy()
         for elem in testSet:
             trainingSet.remove(elem)
-        '''
-        corpus = np.random.rand(100, 5)
-        indices = np.random.permutation(corpus.shape[0])
-        training_idx, test_idx = indices[:80], indices[80:]
-        training, test = corpus[training_idx,:], corpus[test_idx,:]
-        '''
         A = MaxEntModel()
         B = MaxEntModel()
         A.initialize(trainingSet)
         B.initialize(trainingSet)
         A.train(100, 0.2)
         B.train_batch(100, 1, 0.2)
-
-        correctA = 0
-        correctB = 0
-        totalTestWords = 0
-        for sentence in testSet:
-            totalTestWords += len(sentence)
-            for i in range(len(sentence)):
-                word = sentence[i][0]
-                label = sentence[i][1]
-                prevLabel = sentence[i-1][1] if i > 0 else "start"
-                predictedA = A.predict(word, prevLabel)
-                predictedB = B.predict(word, prevLabel)
-                if predictedA == label:
-                    correctA += 1
-                if predictedB == label:
-                    correctB += 1
-
-        accuracyA = correctA / totalTestWords
-        accuracyB = correctB / totalTestWords
-        accuracies = [accuracyA, accuracyB]
-        wordNumbers = [A.trainWordCount, B.trainBatchWordCount]
-
-        plt.plot(wordNumbers, accuracies, color='red')
-        plt.scatter([wordNumbers[0]], [accuracies[0]], label="Model A", color="green")
-        plt.scatter([wordNumbers[1]], [accuracies[1]], label="Model B", color="blue")
-        xMax = max(wordNumbers) + 25
-        xMin = min(wordNumbers) - 25
-        plt.xlim([xMin,xMax])
-        plt.ylim([0,1.0])
-        plt.xlabel("Number of training words")
-        plt.ylabel("Accuracy")
-        plt.legend()
-        plt.show()
-        pp = PdfPages('plot.pdf')
-        pp.savefig()
-        pp.close()
-
-'''
-    testSetLength = len(corpus) // 10
-    testSet = random.sample(corpus, testSetLength)
-
-    trainingSet = corpus.copy()
-    for elem in testSet:
-        trainingSet.remove(elem)
-
-    print("calculated test length = ", testSetLength)
-    print("corpus length = ", len(corpus))
-    print("test set legth = ", len(testSet))
-    print("training set length = ", len(trainingSet))
-
-    A = MaxEntModel()
-    A.initialize(trainingSet)
-
-    print(trainingSet)
-
-    B = MaxEntModel()
-    B.initialize(trainingSet)
-
-    #exit()
-
-    A.train(100, 0.2)
-    B.train_batch(100, 1, 0.2)
-
-    correctA = 0
-    correctB = 0
-    totalTestWords = 0
-
-    for sentence in testSet:
-        totalTestWords += len(sentence)
-        for i in range(len(sentence)):
-            word = sentence[i][0]
-            label = sentence[i][1]
-            prevLabel = sentence[i-1][1] if i > 0 else "start"
-            predictedA = A.predict(word, prevLabel)
-            predictedB = B.predict(word, prevLabel)
-            if predictedA == label:
-                correctA += 1
-            if predictedB == label:
-                correctB += 1
-
-    accuracyA = correctA / totalTestWords
-    accuracyB = correctB / totalTestWords
-
-    print("total test words = ", totalTestWords)
-    print("correct A = ", correctA)
-    print("correct B = ", correctB)
-    print("accuracy A = ", accuracyA)
-    print("accuracy B = ", accuracyB)
-    print("WA = ", A.trainWordCount)
-    print("WB = ", B.trainBatchWordCount)
-
-    accuracies = [accuracyA, accuracyB]
-    wordNumbers = [A.trainWordCount, B.trainBatchWordCount]
-
-    plt.plot(wordNumbers, accuracies, color='red')
-    plt.scatter([wordNumbers[0]], [accuracies[0]], label="Model A", color="green")
-    plt.scatter([wordNumbers[1]], [accuracies[1]], label="Model B", color="blue")
-    xMax = max(wordNumbers) + 25
-    xMin = min(wordNumbers) - 25
-    plt.xlim([xMin,xMax])
-    plt.ylim([0,1.0])
-    plt.xlabel("Number of training words")
-    plt.ylabel("Accuracy")
-    plt.legend()
-    plt.show()
-    pp = PdfPages('plot.pdf')
-    pp.savefig()
-    pp.close()
-        pass
-
-
-'''
 
 
 
@@ -469,10 +339,6 @@ if __name__ == '__main__':
     corpus = import_corpus("prova.txt")
     model = MaxEntModel()
     model.initialize(corpus)
-    #'''
-    model.get_active_features(word='formed',label='CC',prev_label='WRB')
-    model.cond_normalization_factor('formed','CC')
-    #'''
     model.train(1)
     most_prob_label = {}
     prev_label = None
