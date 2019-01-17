@@ -23,12 +23,12 @@ def import_corpus(path_to_file):
 
         line = line.strip()
         if len(line) == 0:
-            sentences.append(sentence)
+            sentences.add(sentence)
             sentence = []
             continue
 
         parts = line.split(' ')
-        sentence.append((parts[0], parts[-1]))
+        sentence.add((parts[0], parts[-1]))
 
     f.close()
     return sentences
@@ -58,9 +58,32 @@ class LinearChainCRF(object):
         build set two sets 'self.features' and 'self.labels'
         '''
         self.corpus = corpus
-        
-        # ...
-        
+        words = set()
+        self.labels = set()
+        for sentence in corpus:
+            for (a,b) in sentence:
+                words.add(a)
+                self.labels.add(b)
+        self.feature_indices = {}
+        list_feature = set()
+        list_labels = list(self.labels)
+        for label1 in list_labels:
+            if ('start',label1) not in list_feature:
+                list_feature.add(('start',label1))
+            for label2 in list_labels:
+                if (label1,label2) not in list_feature:
+                    list_feature.add((label1,label2))
+        for word in words:
+            if (word,'start') not in list_feature:
+                list_feature.add((word,'start'))
+            for label in list_labels:
+                if (word,label) not in list_feature:
+                    list_feature.add((word,label))
+        for i in range(list_feature.__len__()):
+            self.feature_indices[list_feature[i]] = i
+        n_feature = self.feature_indices.__len__()
+        #I create the theta based on the number of features
+        self.theta = np.array([1]*n_feature)
     
         
 
@@ -73,10 +96,9 @@ class LinearChainCRF(object):
         Returns: data structure containing the matrix of forward variables
         '''
         
-        # your code here
+
         
-        pass
-        
+
         
         
         
