@@ -23,12 +23,12 @@ def import_corpus(path_to_file):
 
         line = line.strip()
         if len(line) == 0:
-            sentences.add(sentence)
+            sentences.append(sentence)
             sentence = []
             continue
 
         parts = line.split(' ')
-        sentence.add((parts[0], parts[-1]))
+        sentence.append((parts[0], parts[-1]))
 
     f.close()
     return sentences
@@ -65,6 +65,7 @@ class LinearChainCRF(object):
                 words.add(a)
                 self.labels.add(b)
         self.feature_indices = {}
+        #credo che list_feature non possa essere un set
         list_feature = set()
         list_labels = list(self.labels)
         for label1 in list_labels:
@@ -84,10 +85,85 @@ class LinearChainCRF(object):
         n_feature = self.feature_indices.__len__()
         #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
-    
-        
 
+    '''
+    Va modificato perché vanno considerate in contemporanea la word, con label che label con label precedente
+    '''
+    def get_active_features(self, word, label, prev_label):
+        index_feature1 = 0
+        index_feature2 = 0
+        #The actives feature can be 2 for every word:
+        #1.For the word with that label
+        #2.The prev_label and the follow
+        #I search the word inside the dict of feature
+        if (word,label) in self.feature_indices.keys():
+            index_feature1 = self.feature_indices.get((word,label))
+        if (prev_label,label) in self.feature_indices.keys():
+            index_feature2 = self.feature_indices.get((prev_label,label))
+        #I create an array with all zeros with the same shape of theta
+        active_feature = np.zeros(self.theta.__len__())
+        #I trasform the two feature active features to 1 inside the vector
+        if index_feature1 != 0:
+            active_feature[index_feature1] = 1
+        if index_feature2 != 0:
+            active_feature[index_feature2] = 1
+        active_feature = set(active_feature)
+        return active_feature
+        '''
+    def get_factor_forward_var(self,sentence):
+        n = len(sentence)
+        factor = []
+        list_labels = list(self.labels)
+        list_labels.append('start')
+        for i in range(n-1, 1, -1):
+            #In teoria dovrei scorrere la sentence al contrario per il backward
+            for (word,label) in sentence:
+                for prev_label in list_labels:
+                    '''
+                    if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                    else:
+                        prev_label = label
+                    '''
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor[i] = np.exp(sum)
+        return factor
 
+    def get_factor_backward_var(self,sentence):
+        n = len(sentence)
+        factor = []
+        list_labels = list(self.labels)
+        list_labels.append('start')
+        for i in range(n-1, 1, -1):
+            #In teoria dovrei scorrere la sentence al contrario per il backward
+            for (word,label2) in sentence:
+                if (word,label) == sentence[0]:
+                    prev_label = 'start'
+                else:
+                    prev_label = label
+                for label in list_labels:
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor[i] = np.exp(sum)
+        return factor
+
+        for i in range(n-1, 1, -1):
+            #In teoria dovrei scorrere la sentence al contrario per il backward
+            for (word,label) in sentence:
+                    if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                    else:
+                        prev_label = label
+
+            self.theta = self.get_active_features(word,label,prev_label)
+            #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+            sum = np.sum(self.theta)
+            factor[i] = np.exp(sum)
+
+'''
     # Exercise 1 a) ###################################################################
     def forward_variables(self, sentence):
         '''
@@ -95,11 +171,23 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: data structure containing the matrix of forward variables
         '''
-        
-
-        
-
-        
+        n = len(sentence)
+        factor = np.array()
+        tmp_array = np.array()
+        forw_var = np.matrix()
+        forw_var[0] = factor[0]
+        factor = self.get_factor_forward_var(sentence)
+        for i in range(n-1, 1, -1):
+            for (word,label) in sentence:
+                for prev_label in list_labels:
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor[i] = np.exp(sum)
+                    tmp_array = np.append(factor[i]*forw_var[i-1])
+                    forw_var[i][prev_label] = factor[i]*forw_var[i-1]
+            #form_var has to be a matrix based on labels
+            forw_var = np.vstack([forw_var,tmp_array])
         
         
     def backward_variables(self, sentence):
@@ -108,7 +196,36 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: data structure containing the matrix of backward variables
         '''
-        
+        '''
+        Il factor rappresenta l'esponenziale della somma di ogni feature moltiplicata per theta che rappresenta perciò 
+        il vettore delle feature attive.
+        Visto che l'indice di theta va di pari passo con quello delle feature il prodotto sarà 1 solo se la feature è
+        attiva.
+        La somma risultante penso possa essere al massimo 1 perché si devono verificare in contemporanea che valga la
+        feature con word e label, che tra i due label.
+        Diamo per scontato di aver cambiato le feature e che siano fatte da due label più la parola
+        Il factor deve essere legato alla parola, nel senso che deve esserci un factor per parola
+        '''
+        n = len(sentence)
+        #fare la print per vedere se il numero è giusto
+        print(n)
+        factor = np.array()
+        tmp_array = np.array()
+        back_var = np.matrix()
+        back_var[n] = 1
+        for i in range(n-1, 1, -1):
+            #In teoria dovrei scorrere la sentence al contrario per il backward
+            for (word,label2) in sentence:
+                if (word,label2) == sentence[0]:
+                    prev_label = 'start'
+                for label in list_labels:
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor[i] = np.exp(sum)
+                prev_label = label2
+            #back_var has to be a matrix based on labels
+            back_var[i] = factor[i]*back_var[i+1]
         # your code here
         
         pass
