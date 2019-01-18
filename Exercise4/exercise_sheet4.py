@@ -180,14 +180,16 @@ class LinearChainCRF(object):
         for i in range(n-1, 1, -1):
             for (word,label) in sentence:
                 for prev_label in list_labels:
+                    column = 0
                     self.theta = self.get_active_features(word,label,prev_label)
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
                     factor[i] = np.exp(sum)
-                    tmp_array = np.append(factor[i]*forw_var[i-1])
-                    forw_var[i][prev_label] = factor[i]*forw_var[i-1]
+                    tmp_array = np.append(factor[i]*forw_var[i-1][column])
+                    column += 1
             #form_var has to be a matrix based on labels
             forw_var = np.vstack([forw_var,tmp_array])
+        return forw_var
         
         
     def backward_variables(self, sentence):
@@ -213,22 +215,25 @@ class LinearChainCRF(object):
         tmp_array = np.array()
         back_var = np.matrix()
         back_var[n] = 1
+        prev_label = None
         for i in range(n-1, 1, -1):
             #In teoria dovrei scorrere la sentence al contrario per il backward
             for (word,label2) in sentence:
                 if (word,label2) == sentence[0]:
                     prev_label = 'start'
                 for label in list_labels:
+                    column = 0
                     self.theta = self.get_active_features(word,label,prev_label)
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
                     factor[i] = np.exp(sum)
+                    #back_var è una matrice perciò devo ciclare anche su quella, sulla colonna, cioè sulle label
+                    tmp_array = np.append(factor[i]*back_var[i-1][column])
+                    column += 1
                 prev_label = label2
             #back_var has to be a matrix based on labels
-            back_var[i] = factor[i]*back_var[i+1]
-        # your code here
-        
-        pass
+            back_var = np.vstack([back_var,tmp_array])
+        return back_var
         
         
         
@@ -240,6 +245,7 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: float;
         '''
+        
         
         # your code here
         
