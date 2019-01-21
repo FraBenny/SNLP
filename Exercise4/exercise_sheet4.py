@@ -245,15 +245,12 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: float;
         '''
+        for_matrix = forward_variables(sentence)
+        last_row = len(sentence) - 1
+        Z = np.sum(for_matrix[last_row])
+        return Z
         
         
-        # your code here
-        
-        pass
-        
-        
-        
-            
     # Exercise 1 c) ###################################################################
     def marginal_probability(self, sentence, y_t, y_t_minus_one):
         '''
@@ -263,13 +260,14 @@ class LinearChainCRF(object):
                     y_t_minus_one: element of the set 'self.labels'; label assigned to the word at position t-1
         Returns: float: probability;
         '''
-        
-        # your code here
-        
-        pass
-    
-    
-    
+        for_matrix = forward_variables(sentence)
+        back_matrix = backward_variables(sentence)
+        #I've to take the column with the label y_t from the forward matrix and the column with the label y_t-1 from the
+        #backward matrix
+        Z = compute_z(sentence)
+        marg_prob = (for_matrix[column]*factor[i]*back_matrix[column])/Z
+        return marg_prob
+
     
     # Exercise 1 d) ###################################################################
     def expected_feature_count(self, sentence, feature):
@@ -295,7 +293,8 @@ class LinearChainCRF(object):
         Parameters: num_iterations: int; number of training iterations
                     learning_rate: float
         '''
-        
+        for i in range(number_iterations):
+
         # your code here
         
         pass
