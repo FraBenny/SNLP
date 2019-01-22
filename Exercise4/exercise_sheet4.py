@@ -67,17 +67,18 @@ class LinearChainCRF(object):
         self.feature_indices = {}
         #credo che list_feature non possa essere un set
         list_feature = set()
-        list_labels = list(self.labels)
-        for label1 in list_labels:
+        #L'array è scorribile come se fosse una lista?
+        self.labels = np.array(self.labels)
+        for label1 in self.labels:
             if ('start',label1) not in list_feature:
                 list_feature.add(('start',label1))
-            for label2 in list_labels:
+            for label2 in self.labels:
                 if (label1,label2) not in list_feature:
                     list_feature.add((label1,label2))
         for word in words:
             if (word,'start') not in list_feature:
                 list_feature.add((word,'start'))
-            for label in list_labels:
+            for label in self.labels:
                 if (word,label) not in list_feature:
                     list_feature.add((word,label))
         for i in range(list_feature.__len__()):
@@ -119,21 +120,21 @@ class LinearChainCRF(object):
         factor = np.array()
         tmp_array = np.array()
         forw_var = np.matrix()
-        list_labels = list(self.labels)
+        prev_label = None
         #forw_var[0] = factor[0]
         #factor = self.get_factor_forward_var(sentence)
+        #Devo ciclare sul label e poi dopo anche sugli altri, perciò parola e prev_label rimangono uguali
         for i in range(0, n-1, 1):
-            for (word,label) in sentence:
-                if i == 0:
+            for (word,label2) in sentence:
+                if (word,label2) == sentence[0]:
                     prev_label = 'start'
-                    self.theta = self.get_active_features(word,label,prev_label)
-                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
-                    sum = np.sum(self.theta)
-                    factor[i] = np.exp(sum)
-                    tmp_array = np.append(factor[i])
-                else:
-                    for prev_label in list_labels:
-                        #Controllare se il valore di column è corretto
+                for label in self.labels:
+                    if prev_label == 'start':
+                        self.theta = self.get_active_features(word,label,prev_label)
+                        sum = np.sum(self.theta)
+                        factor[i] = np.exp(sum)
+                        tmp_array = np.append(factor[i])
+                    else:
                         column = 0
                         self.theta = self.get_active_features(word,label,prev_label)
                         #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
@@ -141,10 +142,11 @@ class LinearChainCRF(object):
                         factor[i] = np.exp(sum)
                         tmp_array = np.append(factor[i]*forw_var[i-1][column])
                         column += 1
+                prev_label = label2
             forw_var = np.vstack([forw_var,tmp_array])
+            tmp_array = np.empty()
         return forw_var
-        
-        
+
     def backward_variables(self, sentence):
         '''
         Compute the backward variables for a given sentence.
@@ -166,25 +168,31 @@ class LinearChainCRF(object):
         factor = np.array()
         tmp_array = np.array()
         back_var = np.matrix()
-        list_labels = list(self.labels)
-        back_var[n] = 1
+        ones = np.ones(n)
+        #Vedere se funziona l'assegnamento dell'ultima riga della matrice
+        back_var[n] = ones
         prev_label = None
         for i in range(n-1, 1, -1):
-            #In teoria dovrei scorrere la sentence al contrario per il backward
-            for (word,label2) in sentence:
-                if (word,label2) == sentence[0]:
+            for (word,label) in sentence:
+                if i == 0:
                     prev_label = 'start'
-                for label in list_labels:
-                    column = 0
                     self.theta = self.get_active_features(word,label,prev_label)
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
                     factor[i] = np.exp(sum)
-                    #back_var è una matrice perciò devo ciclare anche su quella, sulla colonna, cioè sulle label
-                    tmp_array = np.append(factor[i]*back_var[i-1][column])
-                    column += 1
-                prev_label = label2
-            back_var = np.vstack([back_var,tmp_array])
+                    tmp_array = np.append(factor[i])
+                else:
+                    for prev_label in self.labels:
+                        #Controllare se il valore di column è corretto
+                        column = 0
+                        self.theta = self.get_active_features(word,label,prev_label)
+                        #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                        sum = np.sum(self.theta)
+                        factor[i] = np.exp(sum)
+                        tmp_array = np.append(factor[i]*forw_var[i-1][column])
+                        column += 1
+            forw_var = np.vstack([forw_var,tmp_array])
+            tmp_array = np.empty()
         return back_var
         
         
@@ -204,19 +212,38 @@ class LinearChainCRF(object):
         
         
     # Exercise 1 c) ###################################################################
-    def marginal_probability(self, sentence, y_t, y_t_minus_one):
+    def marginal_probability(self, sentence, y_t, y_t_minus_one,t):
         '''
         Compute the marginal probability of the labels given by y_t and y_t_minus_one given a sentence.
         Parameters: sentence: list of strings representing a sentence.
                     y_t: element of the set 'self.labels'; label assigned to the word at position t
                     y_t_minus_one: element of the set 'self.labels'; label assigned to the word at position t-1
+                    t: int; position of the word the label y_t is assigned to
         Returns: float: probability;
         '''
+        #Calcolus forward and backward matrices
         for_matrix = forward_variables(sentence)
         back_matrix = backward_variables(sentence)
         #I've to take the column with the label y_t from the forward matrix and the column with the label y_t-1 from the
         #backward matrix
+        #Per sapere quale valore prendere dalle matrice back e for devo sapere l'ordine dei label, che quindi deve
+        # essere fisso per far questo posso, al posto di ricordare i label come set lo ricordo come lista e vado a
+        # prendere la posizione
+        #I take the index of the labels for knowing where take values from the two matrices
+        label_index = np.where(a == y_t)
+        prev_label_index = np.where(a == y_t_minus_one)
+        #I take the two values from the two matrices
+        back_value = back_matrix[t][label_index]
+        for_value = for_matrix[t-1][prev_label_index]
+        #I take the word at position t from the sentence
+        (word,label) = sentence[t]
+        #I compute the partition function
         Z = compute_z(sentence)
+        #I compute theta for obtaining the factor
+        self.theta = self.get_active_features(word,y_t,y_t_minus_one)
+        sum = np.sum(self.theta)
+        factor[i] = np.exp(sum)
+        #Finally I compute the marginal_probability
         marg_prob = (for_matrix[column]*factor[i]*back_matrix[column])/Z
         return marg_prob
 
@@ -262,7 +289,7 @@ class LinearChainCRF(object):
         '''
         Compute the most likely sequence of labels for the words in a given sentence.
         Parameters: sentence: list of strings representing a sentence.
-        Returns: list of lables; each label is an element of the set 'self.labels'
+        Returns: list of labels; each label is an element of the set 'self.labels'
         '''
         
         # your code here
