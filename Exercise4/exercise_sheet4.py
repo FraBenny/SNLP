@@ -5,6 +5,10 @@ import math
 import sys
 import numpy as np
 
+'''
+Va modificato il fatto il feature_indices perché in primis si chiama features e poi deve essere un set
+'''
+
 
 '''
 This function can be used for importing the corpus.
@@ -213,6 +217,7 @@ class LinearChainCRF(object):
         
     # Exercise 1 c) ###################################################################
     def marginal_probability(self, sentence, y_t, y_t_minus_one,t):
+        #Ricordarsi che deve essere basata sulle label contenute nella frase, non su tutte
         '''
         Compute the marginal probability of the labels given by y_t and y_t_minus_one given a sentence.
         Parameters: sentence: list of strings representing a sentence.
@@ -230,6 +235,8 @@ class LinearChainCRF(object):
         # essere fisso per far questo posso, al posto di ricordare i label come set lo ricordo come lista e vado a
         # prendere la posizione
         #I take the index of the labels for knowing where take values from the two matrices
+        #Potrebbe essere sbagliato perché cerca l'indice nella lista dei label, ma dove sono presenti tutte
+        # le label, non solo quelle della frase, perciò meglio cambiare e trasformare le due matrici in dizionari
         label_index = np.where(a == y_t)
         prev_label_index = np.where(a == y_t_minus_one)
         #I take the two values from the two matrices
@@ -256,13 +263,49 @@ class LinearChainCRF(object):
                     feature: a feature; element of the set 'self.features'
         Returns: float;
         '''
-        
+        y_t_minus_one = None
+        marg_prob = np.array()
+        t = 1
+        for (word,y_t) in sentence:
+            if (word,y_t) == sentence[0]:
+                    y_t_minus_one = 'start'
+            marg_prob = np.append(self.marginal_probability(sentence,y_t,y_t_minus_one,t))
+            y_t_minus_one = y_t
+            t += 1
+        #Intanto devo sapere se cercare un prev_label o una word e poi la devo trovare
+        (a,b) = feature
+        prev_label = None
+        tmp_theta = np.array()
+        if a&b in self.labels:
+            #allora devo trovare le words
+            for (word,label) in sentence:
+                if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                if a == prev_label & b == label:
+                    tmp_theta = self.get_active_features(word,label,prev_label)
+                    self.theta = self.theta*tmp_theta
+                prev_label = label
+            #In theta abbiamo n array e dobbiamo sommarli tutti ma solo elemento per elemento,
+            # alla fine dovrà risultare un array della lunghezza degli altri con tutte le feature attive
+            #self.theta = np.sum(theta)
+        else:
+            #allora devo trovare la prev_label
+            for (word,label) in sentence:
+                if (word,label) == sentence[0]:
+                        prev_label = 'start'
+                if a == word & b == label:
+                    tmp_theta = self.get_active_features(word,label,prev_label)
+                    self.theta = self.theta*tmp_theta
+                prev_label = label
+            #In theta abbiamo n array e dobbiamo sommarli tutti ma solo elemento per elemento,
+            # alla fine dovrà risultare un array della lunghezza degli altri con tutte le feature attive
+            #self.theta = np.sum(theta)
+        #eseguisco la marginal per ogni word,label e prev_label e poi eseguisco anche
+        #quello che mi torna theta per vedere quali sono le feature attive e faccio la moltiplicazione
+        #elemento per elemento di ogni valore
         # your code here
-        
-        pass
-    
-    
-    
+        expected = np.sum(self.theta*marg_prob)
+        return expected
     
     
     # Exercise 1 e) ###################################################################
@@ -273,6 +316,7 @@ class LinearChainCRF(object):
                     learning_rate: float
         '''
         for i in range(number_iterations):
+
 
         # your code here
         
