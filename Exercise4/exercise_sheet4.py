@@ -4,9 +4,11 @@
 import math
 import sys
 import numpy as np
+import random
 
 '''
 Va modificato il fatto il feature_indices perché in primis si chiama features e poi deve essere un set
+How much have to be the gradient?
 '''
 
 
@@ -113,6 +115,17 @@ class LinearChainCRF(object):
         active_feature = set(active_feature)
         return active_feature
 
+    def get_all_active_features(self,sentence):
+        prev_label = None
+        active_features = np.array()
+        for (word,label) in sentence:
+            if (word,label) == sentence[0]:
+                prev_label = 'start'
+            active_features = np.append(active_features*self.get_active_features(word,label,prev_label))
+            prev_label = label
+        return active_features
+
+
     # Exercise 1 a) ###################################################################
     def forward_variables(self, sentence):
         '''
@@ -199,9 +212,7 @@ class LinearChainCRF(object):
             tmp_array = np.empty()
         return back_var
         
-        
-        
-    
+
     # Exercise 1 b) ###################################################################
     def compute_z(self, sentence):
         '''
@@ -315,18 +326,25 @@ class LinearChainCRF(object):
         Parameters: num_iterations: int; number of training iterations
                     learning_rate: float
         '''
+        expected_count = np.array()
+        tmp_array = np.array()
+        sentence = random.choice(self.corpus)
+        #Calcolo l'expected come dice nelle linee guida per ogni sentence
+        '''
+        for sentence in self.corpus:
+            for feature in self.features:
+                 tmp_array = np.append(self.expected_feature_count(sentence,feature))
+            expected_count = np.append(tmp_array)
+            tmp_array = np.empty()
+        '''
+        #Calcolo l'expected solo per quella frase
+        for feature in self.features:
+             tmp_array = np.append(self.expected_feature_count(sentence,feature))
+        expected_count = np.append(tmp_array)
+        empirical_count = self.get_all_active_features(sentence)
         for i in range(number_iterations):
+            self.theta += learning_rate*(empirical_count-expected_count)
 
-
-        # your code here
-        
-        pass
-    
-    
-
-    
-    
-    
     
     # Exercise 2 ###################################################################
     def most_likely_label_sequence(self, sentence):
@@ -335,9 +353,38 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: list of labels; each label is an element of the set 'self.labels'
         '''
-        
-        # your code here
-        
-        pass
+        delta_values = np.array()
+        #But what is 'i'?, every label inside the sentence?
+        delta_values = np.append()
+        for (word,label) in sentence:
+            if i == 0:
+                prev_label = 'start'
+                self.theta = self.get_active_features(word,label,prev_label)
+                #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                sum = np.sum(self.theta)
+                factor[i] = np.exp(sum)
+                tmp_array = np.append(factor[i])
+            else:
+                for prev_label in self.labels:
+                    #Controllare se il valore di column è corretto
+                    column = 0
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor[i] = np.exp(sum)
+                    tmp_array = np.append(factor[i]*forw_var[i-1][column])
+                    column += 1
+
+
+
+
+
+
+    if __name__ == '__main__':
+        corpus = import_corpus(corpus_temp.txt)
+        model = LinearChainCRF()
+        model.initialize(corpus)
+        model.train(10)
+        ò
 
     
