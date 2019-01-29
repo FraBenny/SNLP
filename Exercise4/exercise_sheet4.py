@@ -64,31 +64,30 @@ class LinearChainCRF(object):
         words = set()
         self.labels = set()
         for sentence in corpus:
-            for (a,b) in sentence:
+            for (a, b) in sentence:
                 words.add(a)
                 self.labels.add(b)
-        self.feature_indices = {}
         #credo che list_feature non possa essere un set
-        list_feature = set()
+        self.features = list()
         #L'array è scorribile come se fosse una lista?
-        self.labels = np.array(self.labels)
+        self.labels = list(self.labels)
         for label1 in self.labels:
-            if ('start',label1) not in list_feature:
-                list_feature.add(('start',label1))
+            if ('start',label1) not in self.features:
+                self.features.append(('start',label1))
             for label2 in self.labels:
-                if (label1,label2) not in list_feature:
-                    list_feature.add((label1,label2))
+                if (label1,label2) not in self.features:
+                    self.features.append((label1,label2))
         for word in words:
-            if (word,'start') not in list_feature:
-                list_feature.add((word,'start'))
+            if (word,'start') not in self.features:
+                self.features.append((word,'start'))
             for label in self.labels:
-                if (word,label) not in list_feature:
-                    list_feature.add((word,label))
-        for i in range(list_feature.__len__()):
-            self.feature_indices[list_feature[i]] = i
-        n_feature = self.feature_indices.__len__()
+                if (word,label) not in self.features:
+                    self.features.append((word,label))
+        #self.features = np.array(self.features)
+        n_feature = self.features.__len__()
         #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
+        print("Finito")
 
     def get_active_features(self, word, label, prev_label):
         index_feature1 = 0
@@ -97,10 +96,11 @@ class LinearChainCRF(object):
         #1.For the word with that label
         #2.The prev_label and the follow
         #I search the word inside the dict of feature
-        if (word,label) in self.feature_indices.keys():
-            index_feature1 = self.feature_indices.get((word,label))
-        if (prev_label,label) in self.feature_indices.keys():
-            index_feature2 = self.feature_indices.get((prev_label,label))
+        ''' Da modificare perché il dizionario non esiste più'''
+        if (word,label) in self.features:
+            index_feature1 = self.features.index((word,label))
+        if (prev_label,label) in self.features:
+            index_feature2 = self.features.index((prev_label,label))
         #I create an array with all zeros with the same shape of theta
         active_feature = np.zeros(self.theta.__len__())
         #I trasform the two feature active features to 1 inside the vector
@@ -108,7 +108,6 @@ class LinearChainCRF(object):
             active_feature[index_feature1] = 1
         if index_feature2 != 0:
             active_feature[index_feature2] = 1
-        active_feature = set(active_feature)
         return active_feature
 
     def get_all_active_features(self,sentence):
@@ -117,11 +116,11 @@ class LinearChainCRF(object):
         for (word,label) in sentence:
             if (word,label) == sentence[0]:
                 prev_label = 'start'
-            active_features = np.append(active_features*self.get_active_features(word,label,prev_label))
+            active_features = np.append(active_features,active_features*self.get_active_features(word,label,prev_label))
             prev_label = label
         return active_features
 
-
+    
     # Exercise 1 a) ###################################################################
     def forward_variables(self, sentence):
         '''
@@ -130,32 +129,38 @@ class LinearChainCRF(object):
         Returns: data structure containing the matrix of forward variables
         '''
         n = len(sentence)
-        factor = np.array()
-        tmp_array = np.array()
-        forw_var = np.matrix()
+        #factor = np.array(None)
+        factor = None
+        tmp_array = np.array(None)
+        forw_var = np.matrix(None)
         prev_label = None
         #forw_var[0] = factor[0]
         #factor = self.get_factor_forward_var(sentence)
         #Devo ciclare sul label e poi dopo anche sugli altri, perciò parola e prev_label rimangono uguali
-        for i in range(0, n-1, 1):
-            for (word,label2) in sentence:
-                if (word,label2) == sentence[0]:
-                    prev_label = 'start'
-                for label in self.labels:
-                    if prev_label == 'start':
-                        self.theta = self.get_active_features(word,label,prev_label)
-                        sum = np.sum(self.theta)
-                        factor[i] = np.exp(sum)
-                        tmp_array = np.append(factor[i])
-                    else:
-                        column = 0
-                        self.theta = self.get_active_features(word,label,prev_label)
-                        #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
-                        sum = np.sum(self.theta)
-                        factor[i] = np.exp(sum)
-                        tmp_array = np.append(factor[i]*forw_var[i-1][column])
-                        column += 1
-                prev_label = label2
+        for (word,label2) in sentence:
+            row = 0
+            if (word,label2) == sentence[0]:
+                prev_label = 'start'
+            for label in self.labels:
+                if prev_label == 'start':
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    sum = np.sum(self.theta)
+                    factor = np.exp(sum)
+                    #Che senso ha che factor sia una lista se poi lo aggiungo direttamente a tmp_array?
+                    tmp_array = np.append(tmp_array,factor)
+                else:
+                    column = 0
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor = np.exp(sum)
+                    print(factor)
+                    print(forw_var[row][column])
+                    #Problema legato all'indice
+                    tmp_array = np.append(tmp_array,factor*forw_var[i-1][column])
+                    column += 1
+            prev_label = label2
+            row += 1
             forw_var = np.vstack([forw_var,tmp_array])
             tmp_array = np.empty()
         return forw_var
@@ -178,7 +183,7 @@ class LinearChainCRF(object):
         n = len(sentence)
         #fare la print per vedere se il numero è giusto
         print(n)
-        factor = np.array()
+        factor = None
         tmp_array = np.array()
         back_var = np.matrix()
         ones = np.ones(n)
@@ -192,8 +197,8 @@ class LinearChainCRF(object):
                     self.theta = self.get_active_features(word,label,prev_label)
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
-                    factor[i] = np.exp(sum)
-                    tmp_array = np.append(factor[i])
+                    factor = np.exp(sum)
+                    tmp_array = np.append(tmp_array,factor)
                 else:
                     for prev_label in self.labels:
                         #Controllare se il valore di column è corretto
@@ -201,8 +206,8 @@ class LinearChainCRF(object):
                         self.theta = self.get_active_features(word,label,prev_label)
                         #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                         sum = np.sum(self.theta)
-                        factor[i] = np.exp(sum)
-                        tmp_array = np.append(factor[i]*forw_var[i-1][column])
+                        factor = np.exp(sum)
+                        tmp_array = np.append(tmp_array,factor*forw_var[i-1][column])
                         column += 1
             forw_var = np.vstack([forw_var,tmp_array])
             tmp_array = np.empty()
@@ -273,12 +278,12 @@ class LinearChainCRF(object):
         Returns: float;
         '''
         y_t_minus_one = None
-        marg_prob = np.array()
+        marg_prob = np.array(None)
         t = 1
         for (word,y_t) in sentence:
             if (word,y_t) == sentence[0]:
                     y_t_minus_one = 'start'
-            marg_prob = np.append(self.marginal_probability(sentence,y_t,y_t_minus_one,t))
+            marg_prob = np.append(marg_prob,self.marginal_probability(sentence,y_t,y_t_minus_one,t))
             y_t_minus_one = y_t
             t += 1
         #Intanto devo sapere se cercare un prev_label o una word e poi la devo trovare
@@ -324,21 +329,21 @@ class LinearChainCRF(object):
         Parameters: num_iterations: int; number of training iterations
                     learning_rate: float
         '''
-        expected_count = np.array()
-        tmp_array = np.array()
+        expected_count = np.array(None)
+        tmp_array = np.array(None)
         sentence = random.choice(self.corpus)
         #Calcolo l'expected come dice nelle linee guida per ogni sentence
         '''
         for sentence in self.corpus:
             for feature in self.features:
-                 tmp_array = np.append(self.expected_feature_count(sentence,feature))
-            expected_count = np.append(tmp_array)
+                 tmp_array = np.append(tmp_array,self.expected_feature_count(sentence,feature))
+            expected_count = np.append(expected_count,tmp_array)
             tmp_array = np.empty()
         '''
         #Calcolo l'expected solo per quella frase
         for feature in self.features:
-             tmp_array = np.append(self.expected_feature_count(sentence,feature))
-        expected_count = np.append(tmp_array)
+             tmp_array = np.append(tmp_array,self.expected_feature_count(sentence,feature))
+        expected_count = np.append(expected_count,tmp_array)
         empirical_count = self.get_all_active_features(sentence)
         for i in range(num_iterations):
             self.theta += learning_rate*(empirical_count-expected_count)
@@ -356,7 +361,7 @@ class LinearChainCRF(object):
         delta_values = np.matrix()
         psi = np.matrix()
         factor = np.array()
-        delta_values = np.append()
+        delta_values = np.array()
         #for i in range(len(sentence)):
         row = 0
         for (word,label) in sentence:
@@ -367,7 +372,7 @@ class LinearChainCRF(object):
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
                     factor = np.exp(sum)
-                    tmp_array = np.append(factor)
+                    tmp_array = np.append(tmp_array,factor)
                 delta_values = np.vstack([delta_values,tmp_array])
                 tmp_array = np.empty()
             else:
@@ -379,7 +384,7 @@ class LinearChainCRF(object):
                     factor = np.exp(sum)
                     #tmp_array = np.append(factor)
                     #Devo calcolare il prodotto tra i fattori e il delta della riga precedente, poi di questo prendere il massimo
-                    tmp_array = np.append(np.amax(factor*delta_values[row]))
+                    tmp_array = np.append(tmp_array,np.amax(factor*delta_values[row]))
                     row += 1
                 delta_values = np.vstack([delta_values,tmp_array])
                 tmp_array = np.empty()
@@ -389,11 +394,11 @@ class LinearChainCRF(object):
             most_lky_lbl_sqn.append(self.labels[index_max])
         return most_lky_lbl_sqn
 
-    if __name__ == '__main__':
-        corpus = import_corpus("corpus_temp.txt")
-        corpus = import_corpus("corpus_pos.txt")
-        model = LinearChainCRF()
-        model.initialize(corpus)
-        model.train(10)
+if __name__ == '__main__':
+    corpus = import_corpus("corpus_temp.txt")
+    #corpus = import_corpus("corpus_pos.txt")
+    model = LinearChainCRF()
+    model.initialize(corpus)
+    model.train(1)
 
     
