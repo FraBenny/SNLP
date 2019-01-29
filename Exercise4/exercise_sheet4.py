@@ -40,8 +40,6 @@ def import_corpus(path_to_file):
     return sentences
 
 
-
-
 class LinearChainCRF(object):
     # training corpus
     corpus = None
@@ -57,8 +55,7 @@ class LinearChainCRF(object):
     
     # set containing all lables observed in the corpus 'self.corpus'
     labels = None
-    
-    
+
     def initialize(self, corpus):
         '''
         build set two sets 'self.features' and 'self.labels'
@@ -92,7 +89,6 @@ class LinearChainCRF(object):
         n_feature = self.feature_indices.__len__()
         #I create the theta based on the number of features
         self.theta = np.array([1]*n_feature)
-
 
     def get_active_features(self, word, label, prev_label):
         index_feature1 = 0
@@ -220,7 +216,7 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: float;
         '''
-        for_matrix = forward_variables(sentence)
+        for_matrix = self.forward_variables(sentence)
         last_row = len(sentence) - 1
         Z = np.sum(for_matrix[last_row])
         return Z
@@ -238,8 +234,9 @@ class LinearChainCRF(object):
         Returns: float: probability;
         '''
         #Calcolus forward and backward matrices
-        for_matrix = forward_variables(sentence)
-        back_matrix = backward_variables(sentence)
+        for_matrix = self.forward_variables(sentence)
+        back_matrix = self.backward_variables(sentence)
+        factor = np.array()
         #I've to take the column with the label y_t from the forward matrix and the column with the label y_t-1 from the
         #backward matrix
         #Per sapere quale valore prendere dalle matrice back e for devo sapere l'ordine dei label, che quindi deve
@@ -256,14 +253,15 @@ class LinearChainCRF(object):
         #I take the word at position t from the sentence
         (word,label) = sentence[t]
         #I compute the partition function
-        Z = compute_z(sentence)
+        Z = self.compute_z(sentence)
         #I compute theta for obtaining the factor
         self.theta = self.get_active_features(word,y_t,y_t_minus_one)
         sum = np.sum(self.theta)
         factor[i] = np.exp(sum)
         #Finally I compute the marginal_probability
-        marg_prob = (for_matrix[column]*factor[i]*back_matrix[column])/Z
-        return marg_prob
+        pass
+        #marg_prob = (for_matrix[column]*factor[i]*back_matrix[column])/Z
+        #return marg_prob
 
     
     # Exercise 1 d) ###################################################################
@@ -342,7 +340,7 @@ class LinearChainCRF(object):
              tmp_array = np.append(self.expected_feature_count(sentence,feature))
         expected_count = np.append(tmp_array)
         empirical_count = self.get_all_active_features(sentence)
-        for i in range(number_iterations):
+        for i in range(num_iterations):
             self.theta += learning_rate*(empirical_count-expected_count)
 
     
@@ -353,38 +351,49 @@ class LinearChainCRF(object):
         Parameters: sentence: list of strings representing a sentence.
         Returns: list of labels; each label is an element of the set 'self.labels'
         '''
-        delta_values = np.array()
-        #But what is 'i'?, every label inside the sentence?
+        most_lky_lbl_sqn = np.array()
+        #delta è un matrice non un array, viene calcolata una per ogni label
+        delta_values = np.matrix()
+        psi = np.matrix()
+        factor = np.array()
         delta_values = np.append()
+        #for i in range(len(sentence)):
+        row = 0
         for (word,label) in sentence:
-            if i == 0:
+            if (word,label) == sentence[0]:
                 prev_label = 'start'
-                self.theta = self.get_active_features(word,label,prev_label)
-                #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
-                sum = np.sum(self.theta)
-                factor[i] = np.exp(sum)
-                tmp_array = np.append(factor[i])
-            else:
-                for prev_label in self.labels:
-                    #Controllare se il valore di column è corretto
-                    column = 0
+                for label in self.labels:
                     self.theta = self.get_active_features(word,label,prev_label)
                     #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
                     sum = np.sum(self.theta)
-                    factor[i] = np.exp(sum)
-                    tmp_array = np.append(factor[i]*forw_var[i-1][column])
-                    column += 1
+                    factor = np.exp(sum)
+                    tmp_array = np.append(factor)
+                delta_values = np.vstack([delta_values,tmp_array])
+                tmp_array = np.empty()
+            else:
+                for label in self.labels:
+                    #Controllare se il valore di column è corretto
+                    self.theta = self.get_active_features(word,label,prev_label)
+                    #La somma rappresenta unicamente le feature attive perciò è come se moltiplicassi per la feature attiva
+                    sum = np.sum(self.theta)
+                    factor = np.exp(sum)
+                    #tmp_array = np.append(factor)
+                    #Devo calcolare il prodotto tra i fattori e il delta della riga precedente, poi di questo prendere il massimo
+                    tmp_array = np.append(np.amax(factor*delta_values[row]))
+                    row += 1
+                delta_values = np.vstack([delta_values,tmp_array])
+                tmp_array = np.empty()
 
-
-
-
-
+        for i in random(len(sentence)):
+            index_max = np.argmax(delta_values[i])
+            most_lky_lbl_sqn.append(self.labels[index_max])
+        return most_lky_lbl_sqn
 
     if __name__ == '__main__':
-        corpus = import_corpus(corpus_temp.txt)
+        corpus = import_corpus("corpus_temp.txt")
+        corpus = import_corpus("corpus_pos.txt")
         model = LinearChainCRF()
         model.initialize(corpus)
         model.train(10)
-        ò
 
     
