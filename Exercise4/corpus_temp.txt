@@ -1,10 +1,5 @@
-A DT
-Lorillard NNP
-spokewoman NN
-said VBD
-This DT
-is VBZ
-an DT
-old JJ
-story NN
+a q
+b r
+
+
 
